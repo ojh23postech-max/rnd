@@ -84,7 +84,7 @@ function findRule(q) {
 // 확인 질문: 선택한 부처(과제 구분)에 적용되는 것만 표시, 이미 체크한 값은 유지
 function renderQs() {
   const m = $("#track").value, t = trackOf(m), on = new Set([...document.querySelectorAll("[data-q]:checked")].map((x) => x.dataset.q));
-  const qs = rule ? rule.questions.filter((q) => q.tracks.includes(t) && (!q.ministries || q.ministries.includes(m))) : [];
+  const qs = rule ? rule.questions.filter((q) => (q.show || [[q.tracks, null]]).some(([ts, ms]) => ts.includes(t) && (!ms || ms.includes(m)))) : [];
   $("#qs").innerHTML = "<legend>해당하면 체크</legend>" + (rule
     ? qs.map((q) => `<label><input type="checkbox" data-q="${q.id}"${on.has(q.id) ? " checked" : ""}>${esc(q.label)}</label>`).join("") || `<p class="none">이 과제 구분에서는 추가로 확인할 사항이 없어요.</p>`
     : `<p class="none">항목을 고르면 확인할 질문이 나옵니다.</p>`);

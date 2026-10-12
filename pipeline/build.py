@@ -182,20 +182,20 @@ if __name__ == "__main__":
     ALL = {t["id"] for t in rules["tracks"]}
     for r in rules["rules"]:
         for q in r["questions"]:
-            ts, ms = set(), set()  # ms: 특정 부처에서만 쓰는 질문이면 그 부처들, 하나라도 부처 무관이면 None
+            # 조건마다 (적용 과제구분, 적용 부처) 조합을 모아, 그 조합 중 하나라도 맞을 때만 질문을 보여 줌
+            # 예: 최소 인건비계상률 10%는 '산업부 과제' 또는 '기후에너지환경부(KETEP)'에서만 판정에 쓰이므로 과기정통부·NRF 과제에는 묻지 않음
+            show = []
             for c in r["checks"] + r["agree"] + r["연계"]:
                 if any(k == q["id"] for k, _, _ in c["when"]):
                     t = ALL.copy()
                     for k, op, v in c["when"]:
                         if k == "track":
                             t &= {v} if op == "==" else ALL - {v}
-                    ts |= t
                     only = [v for k, op, v in c["when"] if k == "ministry" and op == "=="]
-                    ms = ms | set(only) if ms is not None and only else None
-            assert ts, f"쓰이지 않는 질문: {r['id']}.{q['id']}"
-            q["tracks"] = sorted(ts)
-            if ms:
-                q["ministries"] = sorted(ms)
+                    show.append([sorted(t), sorted(only) or None])
+            assert show, f"쓰이지 않는 질문: {r['id']}.{q['id']}"
+            q["tracks"] = sorted({x for t, _ in show for x in t})
+            q["show"] = [list(s) for s in {(tuple(t), tuple(m) if m else None) for t, m in show}]
     # 공개 사이트: POSTECH 내규는 조항 번호와 요지만 (전문은 학내 규정집)
     gist = lambda t: t if len(t) <= 200 else t[:200].rstrip() + "… (전문은 POSTECH 규정집 참고)"
     for c in cases:
