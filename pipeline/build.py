@@ -210,7 +210,7 @@ if __name__ == "__main__":
     docs = sorted({c["출처"] for c in cases} | set(texts))
     meta = {"기준일": date.today().isoformat(), "문서": docs,
             "사례수": len(cases), "게시판수": sum(c["출처구분"] != "참고자료" for c in cases)}
-    slim = [{k: c[k] for k in ("id", "출처구분", "출처", "쪽", "유형", "제목", "답변", "비목", "판정", "판정근거")} | {"부처": c.get("부처", ["공통"])} | ({"원문URL": c["원문URL"]} if c.get("원문URL") else {}) | ({"자동": 1} if c.get("자동") else {}) | dated(c) | srclink(c) for c in cases]
+    slim = [{k: c[k] for k in ("id", "출처구분", "출처", "쪽", "유형", "제목", "답변", "비목", "판정", "판정근거")} | {"부처": c.get("부처", ["공통"])} | ({"질의": c["질의"]} if c.get("질의") and c["질의"].strip() != c["제목"].strip() and not c["출처"].startswith("POSTECH") else {}) | ({"원문URL": c["원문URL"]} if c.get("원문URL") else {}) | ({"자동": 1} if c.get("자동") else {}) | dated(c) | srclink(c) for c in cases]
     # 쟁점 위키(wiki/topics): 쟁점별 정리 문서. 사이트에 없는 사례 인용은 빼고 경고(격주 자동 갱신이 멈추지 않게)
     import wiki
     have, topics = {c["id"] for c in slim}, []

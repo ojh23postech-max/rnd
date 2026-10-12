@@ -31,7 +31,7 @@ fetch("data.json", { cache: "no-cache" }).then((r) => r.json()).then((d) => {
   C = d.cases.filter((c) => c.유형 !== "규정조항"); // 내규 조항은 빼고 사례만
   CM = new Map(C.map((c) => [c.id, c]));
   TP = d.topics || []; TM = new Map(TP.map((x) => [x.id, x])); RN = new Map(d.rules.map((r) => [r.id, r.항목]));
-  C.forEach((c) => { c.lt = c.제목.toLowerCase(); c.lb = (c.답변 + " " + c.비목 + " " + c.출처).toLowerCase(); c.g = grams(c.제목 + " " + c.답변.slice(0, 160)); });
+  C.forEach((c) => { c.lt = c.제목.toLowerCase(); c.lb = ((c.질의 || "") + " " + c.답변 + " " + c.비목 + " " + c.출처).toLowerCase(); c.g = grams(c.제목 + " " + (c.질의 || c.답변).slice(0, 160)); }); // 질문 본문도 검색
   $("#meta").textContent = `사례 ${C.length.toLocaleString()}건${TP.length ? ` · 쟁점 정리 ${TP.length}개` : ""} · 갱신 ${d.meta.기준일}`;
   // 점검 화면의 주요 부처(전문기관이 있는 곳)는 전용 사례가 없어도 늘 보여 줌 + 사례에 붙은 그 밖의 부처
   MS = [...new Set([...MAIN, ...C.flatMap((c) => c.부처).filter((m) => m !== "공통")])];
@@ -106,6 +106,8 @@ function apply() {
 }
 
 const mark = (s, ws) => Search.mark(s, ws, esc);
+// 게시글은 질문 본문과 답변을 나눠 보여 줌(질문이 제목과 같으면 답변만)
+const qa = (c, ws = []) => (c.질의 ? `<p class="dlbl">질문</p><div class="dbody dq">${mark(c.질의, ws)}</div><p class="dlbl">답변</p>` : "") + `<div class="dbody">${mark(c.답변, ws)}</div>`;
 const srcLabel = (c) => (c.출처구분 === "참고자료" ? c.출처.replace(/\(.*\)/, "") : c.출처구분 === "IRIS" || c.출처구분 === "NRF" ? c.출처 : c.출처);
 const whenLine = (c) => [c.원문URL ? "" : where(c.출처, c.쪽), c.일자 || ""].filter(Boolean).join(" · ");
 
@@ -138,11 +140,11 @@ function open(c, push = true) {
     <h2 class="dtitle">${mark(c.제목, ws)}</h2>
     <p class="dmeta">${srcLink(c.출처, c.쪽, c.원문URL)}${c.원문URL ? "" : " · " + esc(c.유형)}${c.일자 ? ` · ${c.원문URL ? "작성 " : ""}${esc(c.일자)}` : ""}${c.답변일 ? ` · 답변 ${esc(c.답변일)}` : ""} · 적용: ${esc(c.부처.join(", "))}</p>
     <section class="dwhy" data-v="${c.판정}"><b>${c.판정 === "참고" ? "참고 사례" : `${c.판정} 판정 이유`}</b><p>${esc(why)}</p></section>
-    <div class="dbody">${mark(c.답변, ws)}</div>
+    ${qa(c, ws)}
     ${rel.length ? `<h3 class="drel">같은 비목의 비슷한 사례</h3><ul class="rel">${rel.map((x) => `<li><details><summary>${tag(x.판정)}<span>${esc(x.제목)}</span></summary>
       <div class="relbody"><p class="dmeta">${esc(x.출처)} · ${srcLink(x.출처, x.쪽, x.원문URL)}${x.일자 ? ` · ${esc(x.일자)}` : ""}</p>
       <section class="dwhy" data-v="${x.판정}"><b>${x.판정 === "참고" ? "참고 사례" : `${x.판정} 판정 이유`}</b><p>${esc(x.판정근거.replace(/^검수: /, ""))}</p></section>
-      <div class="dbody">${esc(x.답변)}</div>
+      ${qa(x)}
       <button type="button" class="copy" data-id="${esc(x.id)}">이 사례를 본문으로 열기</button></div></details></li>`).join("")}</ul>` : ""}
     <p class="dnote">판정은 공개 답변을 검수해 붙인 것입니다. 원문과 다르면 연구지원팀에 알려 주세요. <button type="button" class="copy" id="copy">링크 복사</button></p>`;
   $("#doc").scrollTop = 0;
@@ -186,7 +188,7 @@ function openTopic(x, push = true) {
     <h3 class="drel">근거 사례 <small>눌러서 펼치기</small></h3><ol class="trefs">${[...nums].map(([id, n]) => { const c = CM.get(id); return `<li><details data-id="${esc(id)}"><summary><span class="n">${n}</span>${tag(c.판정)}<span class="src-tag">${esc(srcLabel(c))}</span>${c.일자 ? `<span class="w">${esc(c.일자)}</span>` : ""}<span class="t">${esc(c.제목)}</span></summary>
       <div class="relbody"><p class="dmeta">${srcLink(c.출처, c.쪽, c.원문URL)} · 적용: ${esc(c.부처.join(", "))}</p>
       <section class="dwhy" data-v="${c.판정}"><b>${c.판정 === "참고" ? "참고 사례" : `${c.판정} 판정 이유`}</b><p>${esc(c.판정근거.replace(/^검수: /, ""))}</p></section>
-      <div class="dbody">${esc(c.답변)}</div></div></details></li>`; }).join("")}</ol>
+      ${qa(c)}</div></details></li>`; }).join("")}</ol>
     <p class="dnote">사례 원문을 읽고 쟁점별로 엮은 정리입니다. 새 사례가 들어오면 다시 정리합니다. 판정은 참고용이며, 최종 판단은 연구지원팀과 전문기관 기준을 따르세요. <button type="button" class="copy" id="copy">링크 복사</button></p>`;
   $("#doc").scrollTop = 0;
   if (push) history.replaceState(null, "", `#t=${encodeURIComponent(x.id)}`);
@@ -213,7 +215,7 @@ function showPop(id) {
     <h2 class="dtitle">${esc(c.제목)}</h2>
     <p class="dmeta">${srcLink(c.출처, c.쪽, c.원문URL)}${c.일자 ? ` · ${esc(c.일자)}` : ""} · 적용: ${esc(c.부처.join(", "))}</p>
     <section class="dwhy" data-v="${c.판정}"><b>${c.판정 === "참고" ? "참고 사례" : `${c.판정} 판정 이유`}</b><p>${esc(c.판정근거.replace(/^검수: /, ""))}</p></section>
-    <div class="dbody">${esc(c.답변)}</div>`;
+    ${qa(c)}`;
   $("#popPrev").disabled = popAt <= 0;
   $("#popNext").disabled = popAt >= popIds.length - 1;
   $("#popCount").textContent = `${n} / ${popIds.length}`;

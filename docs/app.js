@@ -256,7 +256,7 @@ function renderCases(v = lastV) {
   // 항목과 관련된 사례(판정 요약용) → 사례 검색어로 한 번 더 거름. 항목이 없으면 전체 사례에서 검색
   const base = matched, cntOf = (l) => { const n = { 인정: 0, 불인정: 0, 판단필요: 0, 참고: 0 }; l.forEach((c) => n[c.판정]++); return n; };
   // 상세 범위(판정 추정용)는 모든 낱말이 비슷한 말로라도 맞아야 하고, 사례 검색은 문장으로 써도 많이 맞는 순으로 보여 줌
-  const T = (c) => (c.lt ||= c.제목.toLowerCase()), B = (c) => (c.lb ||= (c.답변 + " " + c.비목 + " " + c.출처).toLowerCase());
+  const T = (c) => (c.lt ||= c.제목.toLowerCase()), B = (c) => (c.lb ||= ((c.질의 || "") + " " + c.답변 + " " + c.비목 + " " + c.출처).toLowerCase()); // 질문 본문도 검색
   const sq = $("#scopeQ").value.trim(), cq = $("#caseQ").value.trim();
   if (sq || cq) {
     let pool = base.length ? base : D.cases.filter(caseFits);
@@ -470,7 +470,7 @@ function searchIndex() {
     if (!regs.has(key)) regs.set(key, { k: "reg", id: key, 문서: g.문서, 쪽: g.쪽, 제목: g.조항, 본문: g.발췌, 위치: g.출처 === "법제처" ? "법제처 현행" : where(g.문서, g.쪽), 일자: "", items: [] });
     const e = regs.get(key); if (!e.items.includes(r)) e.items.push(r);
   })));
-  const cases = D.cases.filter((c) => c.유형 !== "규정조항").map((c) => ({ k: "case", id: c.id, c, 제목: c.제목, 본문: c.답변 + " " + c.비목 + " " + c.출처 }));
+  const cases = D.cases.filter((c) => c.유형 !== "규정조항").map((c) => ({ k: "case", id: c.id, c, 제목: c.제목, 본문: (c.질의 || "") + " " + c.답변 + " " + c.비목 + " " + c.출처 })); // 게시글 질문 본문도 검색
   return [...regs.values(), ...cases].map((x) => ({ ...x, lt: x.제목.toLowerCase(), lb: (x.문서 || "").toLowerCase() + " " + x.본문.toLowerCase() }));
 }
 function runSearch() {
