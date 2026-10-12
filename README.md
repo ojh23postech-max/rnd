@@ -11,6 +11,7 @@
 | `pipeline/classify_cases.py` | 참고자료 Q&A·예시·판례와 게시판 글을 사례로 만들고 인정/불인정/판단필요로 분류. 분류 수정은 `data/case_overrides.json` |
 | `pipeline/crawl_qna.py` | IRIS 연구수행문의·FAQ와 NRF 사업질의응답의 공개 답변글을 증분 수집. 이름·연락처는 저장하지 않음 |
 | `pipeline/crawl_regs.py` | 법제처 Open API로 전 부처 R&D 규정 변경 점검. 결과는 `reports/날짜_규정변경.md` |
+| `pipeline/crawl_refs.py` | 전문기관 사례집·매뉴얼·FAQ 자료집 신규·개정 점검(KAIA·KIMST 자료실, 태성회계법인 헬프데스크 목록 제목). 공개 원본은 `참고자료/_수집/날짜/참고자료/`에 받고, 결과와 '아직 없는 자료'는 `reports/날짜_참고자료.md`. 확인 후 `참고자료/`로 옮기면 사례로 반영 |
 | `data/rules.json` | 판정 규칙(조건·협약변경·증빙·근거 조항/쪽) |
 | `pipeline/build.py` | 규칙·사례·원문 발췌를 `docs/data.json`으로 묶고 검증 |
 | `pipeline/test_scenarios.py` | 판정 시나리오 회귀 테스트 |

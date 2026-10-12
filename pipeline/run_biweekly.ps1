@@ -1,5 +1,6 @@
-# 격주 자동 갱신 (Windows 작업 스케줄러가 실행, 토큰 0)
-# 1) 법제처 Open API로 전 부처 R&D 규정 변경 점검  2) IRIS·NRF·전문기관(IPET·SMTECH) 공개 답변글 증분 수집
+﻿# 격주 자동 갱신 (Windows 작업 스케줄러가 실행, 토큰 0)
+# 1) 법제처 Open API로 전 부처 R&D 규정 변경 점검  1-2) 전문기관 사례집·매뉴얼 신규·개정 점검(공개 원본은 _수집에 내려받음)
+# 2) IRIS·NRF·전문기관(IPET·SMTECH) 공개 답변글 증분 수집
 # 3) 참고자료 PDF 재추출·사례 분류  4) 사이트 데이터 빌드·검증  5) 변경 시 GitHub Pages로 push
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
@@ -14,6 +15,7 @@ function Step($name, $cmd) {
 }
 
 Step "규정 변경 점검" @("pipeline\crawl_regs.py")
+Step "참고자료 점검" @("pipeline\crawl_refs.py")
 Step "게시판 수집" @("pipeline\crawl_qna.py")
 Step "전문기관 Q&A 수집" @("pipeline\crawl_agencies.py")
 Step "원문 추출" @("pipeline\extract.py")
