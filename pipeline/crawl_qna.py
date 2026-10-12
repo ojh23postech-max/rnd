@@ -144,7 +144,13 @@ def crawl(max_pages, state, cases):
 NRF = "https://www.nrf.re.kr"
 NRF_LIST = NRF + "/page/47"
 NRF_DELAY = 3
-NRF_SINCE = "2022-01-01"
+NRF_SINCE = "2024-01-01"
+# 과거글은 제목이 집행·과제관리와 닿는 글만 받음(신청·선정·평가·시스템 문의 제외), 비목 분류가 잡히는 제목도 포함
+NRF_TOPIC = re.compile(r"연구비|연구개발비|사업비|직접비|세목|인건비|수당|정산|집행|장비|재료|시약|물품|자산|출장|여비|파견|연수|회의|세미나|행사|개최|부스|식비|식대|"
+                       r"간접비|위탁|공동연구|비목|예산|이월|반납|환수|회수|카드|결제|구입|구매|증빙|영수|계상|지급|급여|장려금|활동비|수용비|소프트웨어|라이선스|구독|"
+                       r"학회|논문|게재|사사|전용|잔액|이자|협약변경|변경|종료|사용실적|회계|세금|부가세|기술료|기관부담|임차|수리|외주|용역|자문|강사|사례비|전문가활용|"
+                       r"운영비|경비|비용|통장|이체|환율|해외|참여율|참여인력|참여연구|학생연구|연구원|졸업|휴학|4대보험|퇴직|3책|1인")
+nrf_topic = lambda t: not t.strip() or bool(NRF_TOPIC.search(t)) or bimok(t) != "일반·제도"
 
 
 def nrf_list(n):
@@ -175,9 +181,11 @@ def nrf_case(x, q, a):
             "원문URL": f"{NRF}/biz/qna/view?ac=view&menuNo=47&postNo={x['no']}", "게시번호": x["no"]}
 
 
-def crawl_nrf(state, cases, max_pages, max_details):
+def crawl_nrf(state, cases, max_pages, max_details, save=lambda: None):
     st = state.setdefault("NRF 사업질의응답", {"maxNo": 0, "backfillPage": 1, "backfillDone": False})
-    todo, pages = [], 0
+    # 지난번에 목록에서 찾고 상세 한도 때문에 못 받은 글부터(목록 쪽수만 앞서 가고 글이 빠지지 않게)
+    todo, pages = st.pop("pending", []), 0
+    left = lambda: sum(f"nrf-{x['no']}" not in cases for x in todo)
     # 1) 새 글: 1쪽부터 이전 최대 번호에 닿을 때까지
     n = 1
     while pages < max_pages:
@@ -188,15 +196,18 @@ def crawl_nrf(state, cases, max_pages, max_details):
         n += 1
     top = max([st["maxNo"]] + [x["no"] for x in todo])
     # 2) 과거 글 이어받기
-    while not st["backfillDone"] and pages < max_pages:
+    while not st["backfillDone"] and pages < max_pages and left() < max_details:  # 이번에 받을 수 있는 만큼만 목록을 넘김
         rows = nrf_list(st["backfillPage"]); pages += 1; time.sleep(NRF_DELAY)
-        # 혁신법 시행(2022-01-01) 전 답변은 옛 규정 기준이라 받지 않음
+        # 2024년 전 답변은 받지 않음(분량·최근 개정 기준), 집행과 무관한 제목도 받지 않음
         if not rows or max(x["date"] for x in rows) < NRF_SINCE:
             st["backfillDone"] = True; break
-        todo += [x for x in rows if x["open"] and x["date"] >= NRF_SINCE]
+        todo += [x for x in rows if x["open"] and x["date"] >= NRF_SINCE and nrf_topic(x["title"])]
         st["backfillPage"] += 1
-    got = 0
-    for x in [x for x in todo if f"nrf-{x['no']}" not in cases][:max_details]:
+    got, want = 0, [x for x in todo if f"nrf-{x['no']}" not in cases]
+    st["pending"] = want[max_details:]  # 못 받은 글은 다음 실행으로 넘김
+    for i, x in enumerate(want[:max_details]):
+        if i and i % 200 == 0:  # 중간에 끊겨도 받은 만큼 남기고, 아직 못 받은 글은 대기 목록에
+            st["pending"] = want[i:]; save(); st["pending"] = want[max_details:]
         try:
             q, a = nrf_detail(x["no"])
         except requests.RequestException as e:
@@ -206,7 +217,7 @@ def crawl_nrf(state, cases, max_pages, max_details):
         if a:
             cases[f"nrf-{x['no']}"] = nrf_case(x, q, a); got += 1
     st["maxNo"] = top
-    print(f"NRF 사업질의응답: 목록 {pages}쪽, 공개 후보 {len(todo)}건, 신규 저장 {got}건, 과거글 진행 {st['backfillPage']}쪽{' (완료)' if st['backfillDone'] else ''}")
+    print(f"NRF 사업질의응답: 목록 {pages}쪽, 공개 후보 {len(todo)}건, 신규 저장 {got}건, 다음으로 넘긴 글 {len(st['pending'])}건, 과거글 진행 {st['backfillPage']}쪽{' (완료)' if st['backfillDone'] else ''}")
 
 
 def nrf_manual():
@@ -226,6 +237,14 @@ def nrf_manual():
     return out
 
 
+def save(state, cases):
+    """진행 위치와 받은 글을 함께 저장(긴 수집 중에도 주기적으로 호출)"""
+    out = list(cases.values()) + nrf_manual()
+    OUT.write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
+    STATE.write_text(json.dumps(state, ensure_ascii=False, indent=1), encoding="utf-8")
+    return len(out)
+
+
 if __name__ == "__main__":
     assert scrub("가능합니다. 연락처 010-1234-5678, a.b@postech.ac.kr") == "가능합니다."  # 연락처 문장은 통째로 제외
     assert scrub("가능합니다. 061-338-9773으로 연락주시기 바랍니다.") == "가능합니다."
@@ -233,6 +252,7 @@ if __name__ == "__main__":
     assert scrub("연구책임자는 홍길동, 사업명은 A입니다.") == "연구책임자 [이름], 사업명은 A입니다."
     assert "RS-2022-NR067387" not in scrub("과제번호는 RS-2022-NR067387 입니다.")
     assert "임보혜" not in scrub("이공학술지원팀 임보혜 입니다. 집행 가능합니다.")  # 담당자 인사 문장은 제거
+    assert nrf_topic("세미나 개최비 처리 문의") and not nrf_topic("과제 접수 반려 요청 합니다.")
     arg = lambda k, d: int(sys.argv[sys.argv.index(k) + 1]) if k in sys.argv else d
     state = json.loads(STATE.read_text(encoding="utf-8")) if STATE.exists() else {}
     cases = {c["id"]: c for c in (json.loads(OUT.read_text(encoding="utf-8")) if OUT.exists() else []) if not c["id"].startswith("nrfcsv-")}
@@ -244,9 +264,6 @@ if __name__ == "__main__":
         if "--skip-iris" not in sys.argv:
             crawl(arg("--pages", 10**6), state, cases)
         if "--skip-nrf" not in sys.argv:
-            crawl_nrf(state, cases, arg("--nrf-pages", 150), arg("--nrf-details", 1500))
+            crawl_nrf(state, cases, arg("--nrf-pages", 150), arg("--nrf-details", 1500), lambda: save(state, cases))
     finally:  # 중간에 끊겨도 받은 만큼 저장
-        STATE.write_text(json.dumps(state, ensure_ascii=False, indent=1), encoding="utf-8")
-        out = list(cases.values()) + nrf_manual()
-        OUT.write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
-        print("저장:", OUT.name, len(out), "건")
+        print("저장:", OUT.name, save(state, cases), "건")
