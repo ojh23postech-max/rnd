@@ -16,6 +16,8 @@ SITE, FULL = ROOT / "docs" / "data.json", ROOT / "data" / "cases.json"
 VERDICTS = ("인정", "불인정", "조건부", "엇갈림", "참고")
 LISTS = ("규칙", "검색어", "사례", "검토", "관련")  # 쉼표(검색어는 ;)로 나눈 목록 필드
 GIST = 200  # POSTECH 내규 인용 한도(공개 사이트 원칙)
+PRIVATE = [("이메일", r"[\w.+-]+@[\w-]+\.[\w.]+"), ("전화번호", r"(?<!\d)0\d{1,2}[-. )]\d{3,4}[-. ]\d{4}(?!\d)"),
+           ("과제번호", r"RS-\d{4}-"), ("가린 이름 표시", r"\[이름\]|\[전화\]|\[이메일\]")]
 
 
 def parse(path):
@@ -100,6 +102,11 @@ def lint(write=True):
         for r in t.get("규칙", []):
             if r not in rules:
                 errs.append(f"{t['id']}: 없는 규칙 {r}")
+        # 공개 원칙: 연락처·과제번호·가린 이름 표시가 문서에 들어가면 안 됨(자동 갱신이 막히는 오류로 다룸)
+        raw = t["본문"] + " " + t.get("제목", "")
+        for name, pat in PRIVATE:
+            if re.search(pat, raw):
+                errs.append(f"{t['id']}: 공개하면 안 되는 내용({name})")
         for q in re.findall(r"^> (.+)$", t["본문"], re.M):
             if len(q) > GIST:
                 warns.append(f"{t['id']}: 인용문 {len(q)}자 (POSTECH 내규면 {GIST}자 이내 요지만)")
@@ -129,6 +136,8 @@ def lint(write=True):
         (ROOT / "reports").mkdir(exist_ok=True)
         (ROOT / "reports" / f"{date.today():%Y%m%d}_위키점검.md").write_text(rep, encoding="utf-8")
         log(f"lint | 고칠 것 {len(errs)} · 새 사례 대기 쟁점 {len(stale)}")
+        # 격주 자동 갱신(run_biweekly.ps1)이 읽는 대기 목록: {쟁점: [새 글 + 안 읽은 사례]}
+        (ROOT / "reports" / "wiki_pending.json").write_text(json.dumps({k: a + b for k, (a, b) in stale.items()}, ensure_ascii=False), encoding="utf-8")
     print(rep)
     return errs
 

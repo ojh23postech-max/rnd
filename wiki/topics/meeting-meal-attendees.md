@@ -7,7 +7,7 @@ id: meeting-meal-attendees
 부처: 공통
 검색어: 내부 회의 회의비; 회의비 외부 참석자; 회의비 사전결재; 참여연구자만 회의 식비
 사례: 3c7c396bf0, nrf-272918, nrf-275212, nrf-273913, nrf-277935, nrf-281551, nrf-264512, kaia-b873a1e54e, 5e75f78294, motie-7eed3ef4dc, kaia-d2213383f9, ag-4950455420ec-148, 9093fe60c7, nrf-274683, 4bcc5cd888, 699971073f, nrf-282774, bad6158750, 5df2670add, 81ab1740e1, iris-499697, f61b3505bb
-검토: 86ad05d8c3, motie-0cc198b55f, nrf-275949, nrf-271792, ag-4950455420ec-16630, d741f35333, 127dd7f257, motie-c66d3a243e, kaia-7ef488a9a9, kaia-1d9614d9d1, nrf-283422, ag-4950455420ec-15838, nrf-267311, nrf-264394, ca7230edfa, motie-274efc7268, nrf-278204, nrf-279647, ag-4950455420ec-16534, 335a7c1b96, nrf-273931, motie-b0ea319599, motie-386bd0feac, nrf-276223
+검토: nrf-281212, nrf-280432, nrf-279408, 86ad05d8c3, motie-0cc198b55f, nrf-275949, nrf-271792, ag-4950455420ec-16630, d741f35333, 127dd7f257, motie-c66d3a243e, kaia-7ef488a9a9, kaia-1d9614d9d1, nrf-283422, ag-4950455420ec-15838, nrf-267311, nrf-264394, ca7230edfa, motie-274efc7268, nrf-278204, nrf-279647, ag-4950455420ec-16534, 335a7c1b96, nrf-273931, motie-b0ea319599, motie-386bd0feac, nrf-276223
 관련: meeting-alcohol
 갱신: 2026-10-12
 ---
