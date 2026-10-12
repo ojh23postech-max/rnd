@@ -183,7 +183,10 @@ function openTopic(x, push = true) {
     <h2 class="dtitle">${esc(x.제목)}</h2>
     <p class="dmeta">근거 사례 ${nums.size}건 · 정리 ${esc(x.갱신)}${rules ? ` · ${rules}` : ""}</p>
     <div class="tbody">${body}</div>
-    <h3 class="drel">근거 사례</h3><ol class="trefs">${[...nums].map(([id, n]) => { const c = CM.get(id); return `<li><button type="button" data-id="${esc(id)}"><span class="n">${n}</span>${tag(c.판정)}<span class="src-tag">${esc(srcLabel(c))}</span>${c.일자 ? `<span class="w">${esc(c.일자)}</span>` : ""}<span class="t">${esc(c.제목)}</span></button></li>`; }).join("")}</ol>
+    <h3 class="drel">근거 사례 <small>눌러서 펼치기</small></h3><ol class="trefs">${[...nums].map(([id, n]) => { const c = CM.get(id); return `<li><details data-id="${esc(id)}"><summary><span class="n">${n}</span>${tag(c.판정)}<span class="src-tag">${esc(srcLabel(c))}</span>${c.일자 ? `<span class="w">${esc(c.일자)}</span>` : ""}<span class="t">${esc(c.제목)}</span></summary>
+      <div class="relbody"><p class="dmeta">${srcLink(c.출처, c.쪽, c.원문URL)} · 적용: ${esc(c.부처.join(", "))}</p>
+      <section class="dwhy" data-v="${c.판정}"><b>${c.판정 === "참고" ? "참고 사례" : `${c.판정} 판정 이유`}</b><p>${esc(c.판정근거.replace(/^검수: /, ""))}</p></section>
+      <div class="dbody">${esc(c.답변)}</div></div></details></li>`; }).join("")}</ol>
     <p class="dnote">사례 원문을 읽고 쟁점별로 엮은 정리입니다. 새 사례가 들어오면 다시 정리합니다. 판정은 참고용이며, 최종 판단은 연구지원팀과 전문기관 기준을 따르세요. <button type="button" class="copy" id="copy">링크 복사</button></p>`;
   $("#doc").scrollTop = 0;
   if (push) history.replaceState(null, "", `#t=${encodeURIComponent(x.id)}`);
@@ -230,8 +233,8 @@ $("#pop").addEventListener("keydown", (e) => {
 
 $("#doc").addEventListener("click", (e) => {
   const tb = e.target.closest("button[data-t]"); if (tb) return openTopic(TM.get(tb.dataset.t));
-  const cb = e.target.closest(".cite, .trefs button[data-id]");
-  if (cb) { popIds = [...document.querySelectorAll("#doc .trefs button[data-id]")].map((x) => x.dataset.id); return showPop(cb.dataset.id); }
+  const cb = e.target.closest(".cite"); // 본문 번호는 팝업, 아래 근거 사례 목록은 제자리 펼치기(details)
+  if (cb) { popIds = [...document.querySelectorAll("#doc .trefs details[data-id]")].map((x) => x.dataset.id); return showPop(cb.dataset.id); }
   const b = e.target.closest("button[data-id]"); if (b) return open(C.find((c) => c.id === b.dataset.id));
   if (e.target.id === "copy") { navigator.clipboard?.writeText(location.href).then(() => (e.target.textContent = "복사됨"), () => {}); }
 });

@@ -347,11 +347,19 @@ dialog .x { position: absolute; top: .9rem; right: 1rem; width: 2.2rem; height: 
 .cite:hover { outline: 2px solid currentColor; }
 .tlink { border: 0; background: none; padding: 0; color: var(--blue); font: inherit; font-weight: 600; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
 .trefs { list-style: none; margin: 0; padding: 0; display: grid; gap: .3rem; }
-.trefs button { width: 100%; text-align: left; border: 1px solid var(--line); background: #fff; border-radius: 10px; padding: .45rem .6rem; display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; font-size: .84rem; }
-.trefs button:hover { border-color: var(--blue); }
+.trefs details { border: 1px solid var(--line); background: #fff; border-radius: 10px; }
+.trefs details[open] { border-color: var(--blue); }
+.trefs summary { list-style: none; cursor: pointer; padding: .45rem .6rem; display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; font-size: .84rem; border-radius: 10px; }
+.trefs summary::-webkit-details-marker { display: none; }
+.trefs summary::after { content: "펼치기"; margin-left: auto; font-size: .76rem; color: var(--ink-3); }
+.trefs details[open] summary::after { content: "접기"; }
+.trefs summary:hover { background: var(--fill); }
 .trefs .n { font-weight: 800; color: var(--ink-3); min-width: 1.2rem; font-variant-numeric: tabular-nums; }
 .trefs .w { color: var(--ink-3); font-size: .78rem; }
-.trefs .t { flex-basis: 100%; color: var(--ink); line-height: 1.45; }
+.trefs .t { order: 9; flex-basis: 100%; color: var(--ink); line-height: 1.45; }
+.trefs details[open] .t { font-weight: 700; }
+.trefs .relbody .dbody { font-size: .9rem; }
+.drel small { font-weight: 500; color: var(--ink-3); font-size: .78rem; margin-left: .3rem; }
 .topic-pill { background: var(--blue-weak); color: #1b64da; font-weight: 600; text-decoration: none; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .topic-pill:hover { background: var(--blue); color: #fff; }
 
