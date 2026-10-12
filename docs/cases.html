@@ -6,7 +6,7 @@
 <title>사례 백과 | POSTECH 연구비 집행 점검</title>
 <meta name="description" content="연구비 집행 사례(사례집·IRIS·한국연구재단·전문기관)를 인정·불인정·판단필요로 나눠 찾아보는 사례 백과입니다.">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-<link rel="stylesheet" href="style.css?v=20261012f">
+<link rel="stylesheet" href="style.css?v=20261012g">
 </head>
 <body class="wiki">
 <header class="top">
@@ -67,7 +67,19 @@
   </article>
 </main>
 
-<script src="search.js?v=20261012f"></script>
-<script src="cases.js?v=20261012f"></script>
+<!-- 쟁점 정리의 근거 사례 팝업 -->
+<dialog class="pop" id="pop" aria-label="근거 사례">
+  <div class="popbar">
+    <button type="button" id="popPrev" aria-label="이전 근거">‹</button>
+    <span id="popCount"></span>
+    <button type="button" id="popNext" aria-label="다음 근거">›</button>
+    <a id="popFull" href="#">사례 백과에서 열기</a>
+    <button type="button" id="popClose" class="popx" aria-label="닫기">✕</button>
+  </div>
+  <div class="popbody" id="popBody"></div>
+</dialog>
+
+<script src="search.js?v=20261012g"></script>
+<script src="cases.js?v=20261012g"></script>
 </body>
 </html>

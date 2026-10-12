@@ -201,8 +201,37 @@ $("#sort").addEventListener("change", () => { st.sort = $("#sort").value; apply(
 $("#reset").addEventListener("click", () => { st = { q: "", v: new Set(), s: new Set(), b: "", m: "", sort: "rel" }; $("#q").value = ""; $("#sort").value = "rel"; apply(); });
 $("#topics").addEventListener("click", (e) => { const b = e.target.closest("[data-t]"); if (b) openTopic(TM.get(b.dataset.t)); });
 $("#list").addEventListener("click", (e) => { if (e.target.id === "moreBtn") return more(); const tb = e.target.closest("[data-t]"); if (tb) return openTopic(TM.get(tb.dataset.t)); const b = e.target.closest("[data-id]"); if (b) open(C.find((c) => c.id === b.dataset.id)); });
+// 쟁점 정리의 근거 사례는 화면을 바꾸지 않고 팝업으로 보여 줌(‹ ›로 다른 근거로 넘김)
+let popIds = [], popAt = 0;
+function showPop(id) {
+  popAt = popIds.indexOf(id);
+  const c = CM.get(id), n = popAt + 1;
+  $("#popBody").innerHTML = `<div class="dhead"><span class="src-tag">근거 ${n}</span>${tag(c.판정)}<span class="src-tag">${esc(c.출처)}</span><span class="src-tag">${esc(c.비목)}</span></div>
+    <h2 class="dtitle">${esc(c.제목)}</h2>
+    <p class="dmeta">${srcLink(c.출처, c.쪽, c.원문URL)}${c.일자 ? ` · ${esc(c.일자)}` : ""} · 적용: ${esc(c.부처.join(", "))}</p>
+    <section class="dwhy" data-v="${c.판정}"><b>${c.판정 === "참고" ? "참고 사례" : `${c.판정} 판정 이유`}</b><p>${esc(c.판정근거.replace(/^검수: /, ""))}</p></section>
+    <div class="dbody">${esc(c.답변)}</div>`;
+  $("#popPrev").disabled = popAt <= 0;
+  $("#popNext").disabled = popAt >= popIds.length - 1;
+  $("#popCount").textContent = `${n} / ${popIds.length}`;
+  $("#popFull").href = `#c=${encodeURIComponent(id)}`;
+  if (!$("#pop").open) $("#pop").showModal();
+  $("#popBody").scrollTop = 0;
+}
+$("#popClose").addEventListener("click", () => $("#pop").close());
+$("#popPrev").addEventListener("click", () => showPop(popIds[popAt - 1]));
+$("#popNext").addEventListener("click", () => showPop(popIds[popAt + 1]));
+$("#popFull").addEventListener("click", () => $("#pop").close()); // 사례 백과 본문으로 열기(주소 #c= 로 이동)
+$("#pop").addEventListener("click", (e) => { if (e.target === $("#pop")) $("#pop").close(); }); // 바깥 누르면 닫힘
+$("#pop").addEventListener("keydown", (e) => {
+  if (e.key === "ArrowLeft" && popAt > 0) showPop(popIds[popAt - 1]);
+  if (e.key === "ArrowRight" && popAt < popIds.length - 1) showPop(popIds[popAt + 1]);
+});
+
 $("#doc").addEventListener("click", (e) => {
   const tb = e.target.closest("button[data-t]"); if (tb) return openTopic(TM.get(tb.dataset.t));
+  const cb = e.target.closest(".cite, .trefs button[data-id]");
+  if (cb) { popIds = [...document.querySelectorAll("#doc .trefs button[data-id]")].map((x) => x.dataset.id); return showPop(cb.dataset.id); }
   const b = e.target.closest("button[data-id]"); if (b) return open(C.find((c) => c.id === b.dataset.id));
   if (e.target.id === "copy") { navigator.clipboard?.writeText(location.href).then(() => (e.target.textContent = "복사됨"), () => {}); }
 });

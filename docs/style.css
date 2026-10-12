@@ -354,3 +354,16 @@ dialog .x { position: absolute; top: .9rem; right: 1rem; width: 2.2rem; height: 
 .trefs .t { flex-basis: 100%; color: var(--ink); line-height: 1.45; }
 .topic-pill { background: var(--blue-weak); color: #1b64da; font-weight: 600; text-decoration: none; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .topic-pill:hover { background: var(--blue); color: #fff; }
+
+/* 쟁점 정리 근거 사례 팝업 */
+.pop { border: 0; padding: 0; border-radius: var(--r-lg); width: min(760px, calc(100vw - 32px)); max-height: min(82vh, 900px); box-shadow: 0 20px 60px rgba(0, 23, 51, .25); background: var(--card); color: var(--ink); overflow: hidden; }
+.pop[open] { display: flex; flex-direction: column; }
+.pop::backdrop { background: rgba(0, 23, 51, .35); }
+.popbar { display: flex; align-items: center; gap: .4rem; padding: .6rem .8rem; border-bottom: 1px solid var(--line); flex: none; }
+.popbar button { border: 0; background: var(--fill); border-radius: 8px; min-width: 2rem; height: 2rem; font-size: 1.05rem; font-weight: 700; color: var(--ink-2); cursor: pointer; }
+.popbar button:disabled { opacity: .35; cursor: default; }
+.popbar #popCount { font-size: .84rem; color: var(--ink-3); font-variant-numeric: tabular-nums; min-width: 3.2rem; text-align: center; }
+.popbar a { margin-left: auto; font-size: .84rem; color: var(--blue); font-weight: 600; text-decoration: none; }
+.popbar .popx { margin-left: .3rem; }
+.popbody { padding: 1rem 1.3rem 1.3rem; overflow-y: auto; }
+.popbody .dtitle { font-size: 1.2rem; }
