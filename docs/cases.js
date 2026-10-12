@@ -7,7 +7,7 @@ const where = (doc, p) => (/산업기술혁신|운영요령/.test(doc) && !/POST
 // 원문 보기: 게시판 글은 원문 주소, 공개 정부 자료는 사이트에 올린 PDF의 해당 쪽, 운영요령은 법제처. POSTECH 내규는 규정집 안내
 const PDFS = [["NRF 정부연구비 사용 Q&A 사례집", "nrf-qa-casebook-2026.pdf"], ["KEITI 환경기술개발사업", "keiti-qa-casebook-2025-12.pdf"], ["국가연구개발혁신법 매뉴얼", "rnd-act-manual-2026-07.pdf"],
   ["학생인건비 통합관리", "student-pay-manual-2026-07.pdf"], ["농기평 연구비 FAQ", "ipet-faq-2024h2.pdf"], ["기술료제도 매뉴얼", "royalty-manual-2026.pdf"],
-  ["제재처분 가이드라인", "sanction-guide-2026.pdf"], ["연구시설·장비비 통합관리", "equipment-manual-2026.pdf"]];
+  ["제재처분 가이드라인", "sanction-guide-2026.pdf"], ["연구시설·장비비 통합관리", "equipment-manual-2026.pdf"], ["KAIA 국가R&D 연구비 부적정집행", "kaia-casebook-2025-05.pdf"]];
 const LAWURL = "https://www.law.go.kr/행정규칙/산업기술혁신사업 공통 운영요령";
 const ext = (u, t) => `<a href="${esc(u)}" target="_blank" rel="noopener">${t} ↗</a>`;
 function srcLink(doc, page, url) {

@@ -33,6 +33,7 @@ PDF = {
     "기술료제도 매뉴얼": "royalty-manual-2026.pdf",
     "제재처분 가이드라인": "sanction-guide-2026.pdf",
     "연구시설·장비비 통합관리 매뉴얼": "equipment-manual-2026.pdf",
+    "KAIA 국가R&D 연구비 부적정집행 사례집": "kaia-casebook-2025-05.pdf",
 }
 LAW = {"산업기술혁신사업 공통 운영요령": "https://www.law.go.kr/행정규칙/산업기술혁신사업 공통 운영요령"}
 
