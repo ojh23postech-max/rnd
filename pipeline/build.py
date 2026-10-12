@@ -211,8 +211,17 @@ if __name__ == "__main__":
     meta = {"기준일": date.today().isoformat(), "문서": docs,
             "사례수": len(cases), "게시판수": sum(c["출처구분"] != "참고자료" for c in cases)}
     slim = [{k: c[k] for k in ("id", "출처구분", "출처", "쪽", "유형", "제목", "답변", "비목", "판정", "판정근거")} | {"부처": c.get("부처", ["공통"])} | ({"원문URL": c["원문URL"]} if c.get("원문URL") else {}) | ({"자동": 1} if c.get("자동") else {}) | dated(c) | srclink(c) for c in cases]
+    # 쟁점 위키(wiki/topics): 쟁점별 정리 문서. 사이트에 없는 사례 인용은 빼고 경고(격주 자동 갱신이 멈추지 않게)
+    import wiki
+    have, topics = {c["id"] for c in slim}, []
+    for w in wiki.load():
+        miss = [i for i in wiki.cites(w) if i not in have]
+        if miss:
+            print(f"경고: 쟁점 {w['id']}의 사례 {len(miss)}건이 사이트에 없음 → python pipeline/wiki.py lint")
+        topics.append({k: w.get(k) for k in ("id", "제목", "결론", "비목", "규칙", "부처", "관련", "갱신", "본문")} | {"사례": [i for i in wiki.cites(w) if i in have]})
+    meta["쟁점수"] = len(topics)
     OUT.parent.mkdir(exist_ok=True)
-    OUT.write_text(json.dumps({"meta": meta, "tracks": rules["tracks"], "ministries": ministries, "rules": rules["rules"], "cases": slim}, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    OUT.write_text(json.dumps({"meta": meta, "tracks": rules["tracks"], "ministries": ministries, "rules": rules["rules"], "cases": slim, "topics": topics}, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     from collections import Counter
     print(f"OK {OUT.name}: {OUT.stat().st_size // 1024}KB, 규칙 {len(rules['rules'])}, 사례 {len(cases)}", Counter(c["판정"] for c in cases))
     print("문서별:", Counter(c["출처"] for c in cases).most_common())

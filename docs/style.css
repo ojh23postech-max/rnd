@@ -323,3 +323,34 @@ dialog .x { position: absolute; top: .9rem; right: 1rem; width: 2.2rem; height: 
   .entries { max-height: 70vh; overflow-y: auto; }
   .gnb { order: 3; }
 }
+
+/* 쟁점 정리(wiki/topics): 여러 사례를 쟁점별로 엮은 문서 */
+.tag[data-v="조건부"] { color: var(--warn); background: var(--warn-bg); }
+.tag[data-v="조건부"]::before { content: "△"; }
+.tag[data-v="엇갈림"] { color: #7048e8; background: #f3f0ff; }
+.tag[data-v="엇갈림"]::before { content: "⇄"; }
+.tlist button { align-items: flex-start; line-height: 1.4; }
+.tlist .tag { flex: none; }
+.entries li.topic > button { border-color: var(--blue); background: var(--blue-weak); }
+.entries li.topic .src-tag { background: var(--blue); color: #fff; }
+.tbody { font-size: .93rem; line-height: 1.7; }
+.tbody h3 { font-size: 1rem; margin: 1.1rem 0 .35rem; }
+.tbody h3:first-child { margin-top: .4rem; }
+.tbody p { margin: .3rem 0; }
+.tbody ul { margin: .2rem 0; padding-left: 1.2rem; }
+.tbody li { margin: .2rem 0; }
+.tbody blockquote { margin: .4rem 0; padding: .3rem .8rem; border-left: 3px solid var(--line); color: var(--ink-2); }
+.cite { border: 0; padding: 0 .32rem; margin: 0 .1rem; min-width: 1.35rem; height: 1.25rem; border-radius: 6px; font-size: .72rem; font-weight: 800; vertical-align: .1em; background: var(--fill); color: var(--ink-2); cursor: pointer; font-variant-numeric: tabular-nums; }
+.cite[data-v="인정"] { background: var(--ok-bg); color: var(--ok); }
+.cite[data-v="불인정"] { background: var(--bad-bg); color: var(--bad); }
+.cite[data-v="판단필요"] { background: var(--warn-bg); color: var(--warn); }
+.cite:hover { outline: 2px solid currentColor; }
+.tlink { border: 0; background: none; padding: 0; color: var(--blue); font: inherit; font-weight: 600; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.trefs { list-style: none; margin: 0; padding: 0; display: grid; gap: .3rem; }
+.trefs button { width: 100%; text-align: left; border: 1px solid var(--line); background: #fff; border-radius: 10px; padding: .45rem .6rem; display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; font-size: .84rem; }
+.trefs button:hover { border-color: var(--blue); }
+.trefs .n { font-weight: 800; color: var(--ink-3); min-width: 1.2rem; font-variant-numeric: tabular-nums; }
+.trefs .w { color: var(--ink-3); font-size: .78rem; }
+.trefs .t { flex-basis: 100%; color: var(--ink); line-height: 1.45; }
+.topic-pill { background: var(--blue-weak); color: #1b64da; font-weight: 600; text-decoration: none; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.topic-pill:hover { background: var(--blue); color: #fff; }

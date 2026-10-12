@@ -14,10 +14,12 @@
 | `pipeline/crawl_refs.py` | 전문기관 사례집·매뉴얼·FAQ 자료집 신규·개정 점검(KAIA·KIMST 자료실, 태성회계법인 헬프데스크 목록 제목). 공개 원본은 `참고자료/_수집/날짜/참고자료/`에 받고, 결과와 '아직 없는 자료'는 `reports/날짜_참고자료.md`. 확인 후 `참고자료/`로 옮기면 사례로 반영 |
 | `data/rules.json` | 판정 규칙(조건·협약변경·증빙·근거 조항/쪽). `연계`는 그 집행·변경과 함께 처리할 다른 업무(예: 인건비 감액 → 연구수당 재계상, 3천만 원 이상 장비 → ZEUS 등록)로, 화면의 '함께 처리할 일'에 나오며 판정에는 영향이 없음 |
 | `docs/search.js` | 비슷한 말·문장 검색(조사·어미 떼기, 유사어 묶음, 많이 맞는 순 정렬). 유사어는 파일 안 `SYN`에 한 줄씩 추가 |
+| `wiki/` | 쟁점 위키: 사례를 쟁점별로 엮은 정리 문서(`topics/*.md`)·목차(`index.md`)·기록(`log.md`). 규칙은 `wiki/SCHEMA.md`. 사이트 사례 백과의 '쟁점 정리'로 나옴 |
+| `pipeline/wiki.py` | 위키 장부(토큰 0): `pack`(쟁점 후보 사례를 짧게 묶기), `lint`(깨진 인용·새 사례 점검 → `reports/날짜_위키점검.md`), `index` |
 | `pipeline/build.py` | 규칙·사례·원문 발췌를 `docs/data.json`으로 묶고 검증 |
 | `pipeline/test_scenarios.py` | 판정 시나리오 회귀 테스트 |
 | `pipeline/run_biweekly.ps1` | 위 단계를 격주로 실행하고 변경이 있으면 push (Windows 작업 스케줄러 `POSTECH_연구비점검_격주갱신`, 격주 토 03:00) |
-| `.claude/agents/` | 관리자용 에이전트: rule-extractor, case-curator, update-reviewer, site-builder, qa-verifier |
+| `.claude/agents/` | 관리자용 에이전트: rule-extractor, case-curator, update-reviewer, site-builder, qa-verifier, wiki-curator(쟁점 위키 정리) |
 
 ## 로컬 실행
 ```

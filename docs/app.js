@@ -276,6 +276,9 @@ function renderCases(v = lastV) {
     $("#casesHint").innerHTML = base.length
       ? `<span class="pill">비슷한 사례 <b>${base.length}</b></span>${["인정", "불인정", "판단필요", "참고"].map((k) => `<span class="pill" data-v="${k}">${k} <b>${baseCnt[k]}</b></span>`).join("")}${v === "인정" && baseCnt.불인정 ? `<span class="warn-note">불인정 사례가 있어요. 조건을 한 번 더 확인하세요.</span>` : ""}`
       : `<span class="pill">비슷한 사례를 찾지 못했어요</span>`;
+    // 이 항목을 다룬 쟁점 정리(여러 사례를 엮은 문서)는 사례 백과로 연결
+    const tps = (D.topics || []).filter((x) => rule && (x.규칙 || []).includes(rule.id));
+    $("#casesHint").insertAdjacentHTML("beforeend", tps.map((x) => `<a class="pill topic-pill" href="cases.html#t=${encodeURIComponent(x.id)}" title="${esc(x.제목)}">쟁점 정리 · ${esc(x.제목.replace(/\s*\(.*\)$/, ""))} →</a>`).join(""));
   }
   renderScope(sq, sq ? Search.find(base.length ? base : D.cases.filter(caseFits), sq, T, B, true).map(([, c]) => c) : []);
   page = 0; drawCards();

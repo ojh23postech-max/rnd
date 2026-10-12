@@ -44,6 +44,8 @@ def scrub(t):
     # 이름 필드("연구책임자 : 홍길동", "성명: 홍길동")는 이름만 가림
     t = re.sub(r"(연구책임자명?|책임자명?|참여연구자|연구자|공동연구원|연구원|성명|이름|작성자|신청자|담당|교수)\s*[:：]\s*(?:[가-힣]+(?:대학교|대학|연구원|병원)\s+)?[가-힣]{2,4}(?![가-힣])", r"\1 : [이름]", t)
     t = re.sub(r"(연구책임자|참여연구자)\s+" + SN + r"[가-힣]{2}(?=\s*[)\-,/])", r"\1 [이름]", t)  # "(연구책임자 홍길동)"
+    t = re.sub(r"(연구책임자|책임자|참여연구자|교수)(?:는|은)?\s+" + SN + r"[가-힣]{1,2}(?=\s*(?:입니다|이고|이며|,))", r"\1 [이름]", t)  # "연구책임자는 홍길동,"
+    t = re.sub(r"(?<![A-Za-z0-9])RS-\d{4}-[A-Z]{0,4}\d{4,}", "[과제번호]", t)  # 과제번호로 연구자를 알 수 있음
     t = re.sub(r"(?<![가-힣])[가-힣]{2,4}\s?(?:드림|올림|배상)[ \t]*[.!]?[ \t]*(?=\n|$)", "", t)  # 끝 서명 "홍길동 드림."
     t = re.sub(r"([가-힣]+(?:과|팀|실))\s+" + SN + r"[가-힣]{2}(?=\s{2,}|\n|$)", r"\1", t)  # "○○지원과 홍길동"
     t = re.sub(r"(?<![가-힣])(?!전임|신임|지도|담당|책임|참여|소속|해당|공동|주임|명예|초빙|겸임|석좌|연구|정년|외부|기존|신규|모든)" + SN + r"[가-힣](?=\s?(?:교수|박사)님)", "[이름]", t)  # 두 글자 이름 "홍길 교수님"
@@ -138,6 +140,7 @@ def crawl(max_pages, state, cases):
 NRF = "https://www.nrf.re.kr"
 NRF_LIST = NRF + "/page/47"
 NRF_DELAY = 3
+NRF_SINCE = "2022-01-01"
 
 
 def nrf_list(n):
@@ -183,9 +186,10 @@ def crawl_nrf(state, cases, max_pages, max_details):
     # 2) 과거 글 이어받기
     while not st["backfillDone"] and pages < max_pages:
         rows = nrf_list(st["backfillPage"]); pages += 1; time.sleep(NRF_DELAY)
-        if not rows:
+        # 혁신법 시행(2022-01-01) 전 답변은 옛 규정 기준이라 받지 않음
+        if not rows or max(x["date"] for x in rows) < NRF_SINCE:
             st["backfillDone"] = True; break
-        todo += [x for x in rows if x["open"]]
+        todo += [x for x in rows if x["open"] and x["date"] >= NRF_SINCE]
         st["backfillPage"] += 1
     got = 0
     for x in [x for x in todo if f"nrf-{x['no']}" not in cases][:max_details]:
@@ -222,10 +226,16 @@ if __name__ == "__main__":
     assert scrub("가능합니다. 연락처 010-1234-5678, a.b@postech.ac.kr") == "가능합니다."  # 연락처 문장은 통째로 제외
     assert scrub("가능합니다. 061-338-9773으로 연락주시기 바랍니다.") == "가능합니다."
     assert scrub("○○실 홍길동 선임연구원입니다. 집행 가능합니다.") == "집행 가능합니다."
+    assert scrub("연구책임자는 홍길동, 사업명은 A입니다.") == "연구책임자 [이름], 사업명은 A입니다."
+    assert "RS-2022-NR067387" not in scrub("과제번호는 RS-2022-NR067387 입니다.")
     assert "임보혜" not in scrub("이공학술지원팀 임보혜 입니다. 집행 가능합니다.")  # 담당자 인사 문장은 제거
     arg = lambda k, d: int(sys.argv[sys.argv.index(k) + 1]) if k in sys.argv else d
     state = json.loads(STATE.read_text(encoding="utf-8")) if STATE.exists() else {}
     cases = {c["id"]: c for c in (json.loads(OUT.read_text(encoding="utf-8")) if OUT.exists() else []) if not c["id"].startswith("nrfcsv-")}
+    for c in cases.values():  # 가림 기준이 나중에 강화돼도 저장본에 이름이 남지 않게 매번 다시 가림
+        for k in ("제목", "질의", "답변"):
+            if c.get(k):
+                c[k] = scrub(c[k])
     try:
         if "--skip-iris" not in sys.argv:
             crawl(arg("--pages", 10**6), state, cases)
