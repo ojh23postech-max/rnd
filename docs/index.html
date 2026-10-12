@@ -6,7 +6,7 @@
 <title>연구비 집행 점검 | POSTECH</title>
 <meta name="description" content="국가R&D·산업부·POSTECH 규정으로 연구비 집행 적정성을 점검하고 관련 사례와 협약변경 필요 여부를 확인합니다.">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-<link rel="stylesheet" href="style.css?v=20261012a">
+<link rel="stylesheet" href="style.css?v=20261012d">
 </head>
 <body>
 <header class="top">
@@ -72,6 +72,10 @@
         <div class="cases-hint" id="casesHint"></div>
       </div>
       <ol class="reasons" id="reasons"></ol>
+      <section class="links" id="links" hidden>
+        <h3>함께 처리할 일</h3>
+        <ul id="linkList"></ul>
+      </section>
       <div class="split">
         <section class="box">
           <h3>갖출 증빙</h3>
@@ -95,7 +99,7 @@
       <button role="tab" aria-selected="false" data-tab="search" id="tabSearch">검색</button>
     </div>
     <div class="tabpanel" id="pCases">
-      <label class="case-search"><span class="sr">사례 검색</span><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="caseQ" type="search" placeholder="사례에서 더 찾기 (예: 회의록, 해외 학회)" autocomplete="off"></label>
+      <label class="case-search"><span class="sr">사례 검색</span><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="caseQ" type="search" placeholder="문장으로도 찾아요 (예: 출장 취소되면 위약금은?)" autocomplete="off"></label>
       <div class="dist" id="dist"></div>
       <ul class="cards" id="cards"></ul>
       <nav class="pager" id="pager"><button type="button" id="prev" aria-label="이전 사례">‹</button><span id="pageInfo"></span><button type="button" id="next" aria-label="다음 사례">›</button></nav>
@@ -104,7 +108,7 @@
     <div class="tabpanel" id="pAgree" hidden></div>
     <div class="tabpanel" id="pLaw" hidden></div>
     <div class="tabpanel" id="pSearch" hidden>
-      <label class="case-search"><span class="sr">사례·규정 검색</span><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="sQ" type="search" placeholder="사례·규정 전체에서 찾기 (예: 노트북, 회의 다과, 이월)" autocomplete="off"></label>
+      <label class="case-search"><span class="sr">사례·규정 검색</span><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="sQ" type="search" placeholder="사례·규정 전체에서 찾기 (예: 노트북 구매, 연구수당 줄이면?)" autocomplete="off"></label>
       <div class="dist s3" id="sDist"></div>
       <ul class="cards" id="sCards"></ul>
       <nav class="pager"><button type="button" id="sPrev" aria-label="이전 결과">‹</button><span id="sPage"></span><button type="button" id="sNext" aria-label="다음 결과">›</button></nav>
@@ -113,6 +117,7 @@
 </main>
 
 <dialog id="dlg"><form method="dialog"><button class="x" aria-label="닫기">×</button></form><div id="dlgBody"></div></dialog>
-<script src="app.js?v=20261012a"></script>
+<script src="search.js?v=20261012d"></script>
+<script src="app.js?v=20261012d"></script>
 </body>
 </html>

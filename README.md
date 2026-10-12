@@ -12,7 +12,8 @@
 | `pipeline/crawl_qna.py` | IRIS 연구수행문의·FAQ와 NRF 사업질의응답의 공개 답변글을 증분 수집. 이름·연락처는 저장하지 않음 |
 | `pipeline/crawl_regs.py` | 법제처 Open API로 전 부처 R&D 규정 변경 점검. 결과는 `reports/날짜_규정변경.md` |
 | `pipeline/crawl_refs.py` | 전문기관 사례집·매뉴얼·FAQ 자료집 신규·개정 점검(KAIA·KIMST 자료실, 태성회계법인 헬프데스크 목록 제목). 공개 원본은 `참고자료/_수집/날짜/참고자료/`에 받고, 결과와 '아직 없는 자료'는 `reports/날짜_참고자료.md`. 확인 후 `참고자료/`로 옮기면 사례로 반영 |
-| `data/rules.json` | 판정 규칙(조건·협약변경·증빙·근거 조항/쪽) |
+| `data/rules.json` | 판정 규칙(조건·협약변경·증빙·근거 조항/쪽). `연계`는 그 집행·변경과 함께 처리할 다른 업무(예: 인건비 감액 → 연구수당 재계상, 3천만 원 이상 장비 → ZEUS 등록)로, 화면의 '함께 처리할 일'에 나오며 판정에는 영향이 없음 |
+| `docs/search.js` | 비슷한 말·문장 검색(조사·어미 떼기, 유사어 묶음, 많이 맞는 순 정렬). 유사어는 파일 안 `SYN`에 한 줄씩 추가 |
 | `pipeline/build.py` | 규칙·사례·원문 발췌를 `docs/data.json`으로 묶고 검증 |
 | `pipeline/test_scenarios.py` | 판정 시나리오 회귀 테스트 |
 | `pipeline/run_biweekly.ps1` | 위 단계를 격주로 실행하고 변경이 있으면 push (Windows 작업 스케줄러 `POSTECH_연구비점검_격주갱신`, 격주 토 03:00) |

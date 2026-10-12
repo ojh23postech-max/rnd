@@ -45,30 +45,29 @@ function fromHash() {
   if (c && c !== cur) open(c, false);
 }
 
-const terms = () => st.q.toLowerCase().split(/\s+/).filter(Boolean);
+const terms = () => Search.words(st.q); // 강조할 말(비슷한 말 포함)
+let SC = new Map(); // 검색 관련도 점수
 // 판정·출처 외 조건으로 거른 결과(칩 숫자는 자기 조건을 뺀 나머지 조건 기준으로 셈)
 function base(skip) {
-  const ws = terms();
   let r = C.filter((c) => (skip === "m" || !st.m || c.부처.includes(st.m) || c.부처.includes("공통")) && (skip === "b" || !st.b || c.비목 === st.b)
     && (skip === "v" || !st.v.size || st.v.has(c.판정)) && (skip === "s" || !st.s.size || st.s.has(c.출처구분)));
-  if (ws.length) {
-    const and = r.filter((c) => ws.every((w) => c.lt.includes(w) || c.lb.includes(w)));
-    // 낱말이 모두 들어간 사례가 없으면 2글자 조합으로 넓혀 찾음(띄어쓰기·조사 차이)
-    if (and.length) r = and;
-    else { const g = grams(st.q.toLowerCase()); r = r.filter((c) => { let n = 0; g.forEach((y) => (c.lt.includes(y) || c.lb.includes(y)) && n++); return g.size && n >= Math.ceil(g.size * 0.7); }); }
+  if (st.q) {
+    // 비슷한 말·문장 검색: 조사·어미를 떼고 비슷한 말로 넓혀, 낱말이 많이 맞는 사례부터
+    const f = Search.find(r, st.q, (c) => c.lt, (c) => c.lb);
+    if (!skip) SC = new Map(f.map(([s, c]) => [c, s]));
+    r = f.map(([, c]) => c);
   }
   return r;
 }
 const count = (list, key) => list.reduce((m, c) => ((m[c[key]] = (m[c[key]] || 0) + 1), m), {});
 
 function apply() {
-  const ws = terms(), n = (t, w) => t.split(w).length - 1;
   hits = base();
   const official = (c) => (c.출처구분 === "참고자료" ? 0 : 1), rk = (c) => (c.판정 === "참고" ? 1 : 0);
   if (st.sort === "new") hits.sort((a, b) => (b.일자 || "").localeCompare(a.일자 || ""));
   else if (st.sort === "old") hits.sort((a, b) => (a.일자 || "9").localeCompare(b.일자 || "9"));
   else {
-    const sc = (c) => ws.reduce((a, w) => a + n(c.lt, w) * 3 + Math.min(n(c.lb, w), 3), 0);
+    const sc = (c) => SC.get(c) || 0;
     // 부처를 고르면 그 부처 전용 기준(예: 산업부 공통 운영요령)을 먼저, 거기 없는 사항은 혁신법 공통 사례를 뒤에
     const own = (c) => (st.m && c.부처.includes(st.m) ? 0 : 1);
     hits = hits.map((c) => [sc(c), c]).sort((a, b) => b[0] - a[0] || own(a[1]) - own(b[1]) || rk(a[1]) - rk(b[1]) || official(a[1]) - official(b[1]) || (b[1].일자 || "").localeCompare(a[1].일자 || "")).map(([, c]) => c);
@@ -85,7 +84,10 @@ function apply() {
   $("#toc").innerHTML = `<li><button type="button" data-b="" aria-current="${!st.b}">전체 <b>${bs.reduce((a, [, k]) => a + k, 0).toLocaleString()}</b></button></li>` +
     bs.map(([b, k]) => `<li><button type="button" data-b="${esc(b)}" aria-current="${st.b === b}">${esc(b)} <b>${k.toLocaleString()}</b></button></li>`).join("");
   $("#listTitle").textContent = [st.b || "전체 사례", st.v.size ? [...st.v].join("·") : ""].filter(Boolean).join(" · ");
+  const ex = st.q ? Search.expanded(st.q).slice(0, 2) : [];
   $("#count").textContent = `${hits.length.toLocaleString()}건`;
+  $("#count").title = ex.length ? `비슷한 말도 함께 찾았어요: ${ex.join(", ")}` : "";
+  if (ex.length) $("#count").textContent += ` · 비슷한 말 포함`;
   const nOwn = st.m ? hits.filter((c) => c.부처.includes(st.m)).length : 0;
   $("#note").hidden = !st.m;
   $("#note").textContent = !st.m ? "" : st.m === "산업통상부"
@@ -95,7 +97,7 @@ function apply() {
   $("#list").scrollTop = 0;
 }
 
-const mark = (s, ws) => ws.reduce((h, w) => h.split(esc(w)).join(`<mark>${esc(w)}</mark>`), esc(s));
+const mark = (s, ws) => Search.mark(s, ws, esc);
 const srcLabel = (c) => (c.출처구분 === "참고자료" ? c.출처.replace(/\(.*\)/, "") : c.출처구분 === "IRIS" || c.출처구분 === "NRF" ? c.출처 : c.출처);
 const whenLine = (c) => [c.원문URL ? "" : where(c.출처, c.쪽), c.일자 || ""].filter(Boolean).join(" · ");
 

@@ -104,6 +104,26 @@ S = [
     ("교내과제: 책임자 인건비", "internalFund", dict(piPay=True), "불인정"),
 ]
 
+def links(rid, track="national", amount=None, **ans):
+    """함께 처리할 일: 조건에 맞는 연계 항목의 '바로 점검할 규칙 id|할일'"""
+    r = RULES[rid]
+    f = {"track": track, "amount": amount} | {q["id"]: bool(ans.get(q["id"])) for q in r["questions"]}
+    return [f'{l.get("규칙", "")}|{l["할일"]}' for l in r["연계"] if hit(l["when"], f)]
+
+
+# 함께 처리할 일: (설명, 규칙, 입력, 반드시 포함할 것, 없어야 할 것)
+L = [
+    ("인건비 감액 → 연구수당도 감액", "laborFee", dict(cut=True), ["allowance"], []),
+    ("산업부 인건비 감액 → 연구수당 실사용 인건비 20%", "laborFee", dict(track="motie", cut=True), ["allowance"], ["budget"]),
+    ("인건비 감액 아님 → 연구수당 안내 없음", "laborFee", dict(), [], ["allowance"]),
+    ("학생인건비 감액 → 연구수당도 감액", "studentPay", dict(cut=True), ["allowance"], []),
+    ("예산 전용으로 인건비 감액 → 연구수당", "budget", dict(laborDown=True), ["allowance"], []),
+    ("연구수당만 감액 → 인건비는 그대로(안내만)", "allowance", dict(decrease=True), ["연구수당만 줄일 때"], ["laborFee"]),
+    ("민간과제 → 혁신법 연계 없음", "allowance", dict(track="private", decrease=True), [], ["연구수당만 줄일 때"]),
+    ("3천만 원 장비 → ZEUS 등록", "equipment", dict(amount=30000000), ["취득 후 30일 이내"], []),
+    ("2천만 원 장비 → ZEUS 안내 없음", "equipment", dict(amount=20000000), [], ["취득 후 30일 이내"]),
+]
+
 if __name__ == "__main__":
     fail = 0
     for desc, rid, inp, want in S:
@@ -111,5 +131,11 @@ if __name__ == "__main__":
         ok = got == want
         fail += not ok
         print(("✓" if ok else "✗"), desc, f"→ {got}" + ("" if ok else f" (기대 {want})"))
+    for desc, rid, inp, need, never in L:
+        got = links(rid, **inp)
+        ok = all(any(n in g for g in got) for n in need) and not any(n in g for n in never for g in got)
+        fail += not ok
+        print(("✓" if ok else "✗"), "[함께 처리]", desc, f"→ {got}")
+    S += L
     print(f"\n{len(S) - fail}/{len(S)} 통과")
     raise SystemExit(1 if fail else 0)

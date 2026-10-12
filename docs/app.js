@@ -127,6 +127,14 @@ function setRule(r) {
   run();
 }
 
+// 다른 점검 항목으로 이동(집행/정산·협약변경 목록이 다르면 목록도 바꿈)
+function goRule(id) {
+  const r = D.rules.find((x) => x.id === id);
+  document.querySelector(`[name="mode"][value="${modeOf(r)}"]`).checked = true;
+  fillItems();
+  setRule(r);
+}
+
 function fields() {
   const n = (id) => { const v = $(id).value.replace(/,/g, ""); return v === "" || !shown(id) ? null : Number(v); };
   const m = $("#track").value, f = { ministry: m, track: trackOf(m), amount: n("#amount"), people: n("#people") };
@@ -188,6 +196,17 @@ function run() {
     ...ag.filter((a) => a.v !== "인정").map((a) => ({ v: a.v, t: `협약변경(${a.유형}): ${a.내용}. ${a.msg}.`, g: ord(a.근거) })),
   ];
   if (!items.length) items.push({ v: "인정", t: rule.base.사유, g: ord(rule.base.근거) });
+  // 함께 처리할 일(판정과 별개): 사유 칸 높이를 정하기 전에 그려야 화면에 맞게 잘림
+  const lk = rule.연계.filter((l) => hit(l.when, f));
+  $("#links").hidden = !lk.length;
+  $("#linkList").innerHTML = lk.map((l, i) => {
+    const to = l.규칙 && l.규칙 !== rule.id && D.rules.find((r) => r.id === l.규칙);
+    return `<li>${esc(l.할일)}<button type="button" data-lk="${i}">근거</button>${to ? `<button type="button" data-go="${to.id}">${esc(to.항목)} 점검</button>` : ""}</li>`;
+  }).join("");
+  $("#linkList").onclick = (e) => {
+    if (e.target.dataset.lk) showLaw(ord(lk[+e.target.dataset.lk].근거));
+    if (e.target.dataset.go) goRule(e.target.dataset.go);
+  };
   const row = (x, i) => `<li data-v="${x.v}">${tag(x.v)}<span>${esc(x.t)}</span>
       <span class="src"><button type="button" data-law="${i}">${esc(cite(x.g[0]))}</button>${x.g.length > 1 ? ` 외 ${x.g.length - 1}건` : ""}</span>
       ${x.g[0].발췌 ? `<q class="ex">${esc(x.g[0].발췌)}</q>` : ""}</li>`;
@@ -236,13 +255,18 @@ function renderCases(v = lastV) {
   }).filter(([s]) => s >= 6).sort((a, b) => (a[1].판정 === "참고") - (b[1].판정 === "참고") || (b[1].출처구분 === "참고자료") - (a[1].출처구분 === "참고자료") || b[0] - a[0]).map(([, c]) => c) : [];
   // 항목과 관련된 사례(판정 요약용) → 사례 검색어로 한 번 더 거름. 항목이 없으면 전체 사례에서 검색
   const base = matched, cntOf = (l) => { const n = { 인정: 0, 불인정: 0, 판단필요: 0, 참고: 0 }; l.forEach((c) => n[c.판정]++); return n; };
-  const words = (s) => s.trim().toLowerCase().split(/\s+/).filter(Boolean);
-  const has = (c, ws) => { const t = (c.제목 + " " + c.답변 + " " + c.비목 + " " + c.출처).toLowerCase(); return ws.every((w) => t.includes(w)); };
-  const sq = $("#scopeQ").value.trim(), terms = [...words(sq), ...words($("#caseQ").value)];
-  if (terms.length) {
-    const pool = base.length ? base : D.cases.filter(caseFits);
-    matched = pool.filter((c) => has(c, terms));
-    if (!base.length) matched.sort((a, b) => (a.판정 === "참고") - (b.판정 === "참고") || (b.출처구분 === "참고자료") - (a.출처구분 === "참고자료"));
+  // 상세 범위(판정 추정용)는 모든 낱말이 비슷한 말로라도 맞아야 하고, 사례 검색은 문장으로 써도 많이 맞는 순으로 보여 줌
+  const T = (c) => (c.lt ||= c.제목.toLowerCase()), B = (c) => (c.lb ||= (c.답변 + " " + c.비목 + " " + c.출처).toLowerCase());
+  const sq = $("#scopeQ").value.trim(), cq = $("#caseQ").value.trim();
+  if (sq || cq) {
+    let pool = base.length ? base : D.cases.filter(caseFits);
+    if (sq) pool = Search.find(pool, sq, T, B, true).map(([, c]) => c);
+    matched = pool;
+    // 사례 검색은 고른 항목 관련 사례에 갇히지 않게 이 부처 전체 사례에서 찾고, 항목 관련 사례를 같은 점수 안에서 위로
+    const inBase = new Set(base);
+    const all = sq ? Search.find(D.cases.filter(caseFits), sq, T, B, true).map(([, c]) => c) : D.cases.filter(caseFits);
+    if (cq) matched = Search.find(all, cq, T, B).map(([s, c]) => [s + (inBase.has(c) ? 50 : 0), c]).sort((a, b) => b[0] - a[0] || (a[1].판정 === "참고") - (b[1].판정 === "참고") || (b[1].출처구분 === "참고자료") - (a[1].출처구분 === "참고자료")).map(([, c]) => c);
+    else if (!base.length) matched.sort((a, b) => (a.판정 === "참고") - (b.판정 === "참고") || (b.출처구분 === "참고자료") - (a.출처구분 === "참고자료"));
   }
   const cnt = cntOf(matched), baseCnt = cntOf(base);
   $("#tabCases").textContent = `사례 ${matched.length}`;
@@ -253,7 +277,7 @@ function renderCases(v = lastV) {
       ? `<span class="pill">비슷한 사례 <b>${base.length}</b></span>${["인정", "불인정", "판단필요", "참고"].map((k) => `<span class="pill" data-v="${k}">${k} <b>${baseCnt[k]}</b></span>`).join("")}${v === "인정" && baseCnt.불인정 ? `<span class="warn-note">불인정 사례가 있어요. 조건을 한 번 더 확인하세요.</span>` : ""}`
       : `<span class="pill">비슷한 사례를 찾지 못했어요</span>`;
   }
-  renderScope(sq, sq ? (base.length ? base : D.cases.filter(caseFits)).filter((c) => has(c, words(sq))) : []);
+  renderScope(sq, sq ? Search.find(base.length ? base : D.cases.filter(caseFits), sq, T, B, true).map(([, c]) => c) : []);
   page = 0; drawCards();
 }
 
@@ -437,7 +461,7 @@ function searchIndex() {
   const regs = new Map();
   D.cases.filter((c) => c.유형 === "규정조항").forEach((c) => regs.set(c.id, { k: "reg", id: c.id, 문서: c.출처, 쪽: c.쪽, 제목: c.제목, 본문: c.답변, 위치: where(c.출처, c.쪽), 일자: c.일자 || "", items: [] }));
   // 판정 규칙의 근거(혁신법 매뉴얼·사용기준·부처 규정 등): 같은 문서·조항은 하나로 묶고 이 근거로 판정하는 항목을 함께 보여 줌
-  D.rules.forEach((r) => [r.base, ...r.checks, ...r.agree].forEach((x) => x.근거.forEach((g) => {
+  D.rules.forEach((r) => [r.base, ...r.checks, ...r.agree, ...r.연계].forEach((x) => x.근거.forEach((g) => {
     if (!g.발췌) return;
     const key = g.문서 + "|" + g.조항;
     if (!regs.has(key)) regs.set(key, { k: "reg", id: key, 문서: g.문서, 쪽: g.쪽, 제목: g.조항, 본문: g.발췌, 위치: g.출처 === "법제처" ? "법제처 현행" : where(g.문서, g.쪽), 일자: "", items: [] });
@@ -451,13 +475,9 @@ function runSearch() {
   const q = $("#sQ").value.trim().toLowerCase(), ws = q.split(/\s+/).filter(Boolean);
   if (!ws.length) sHits = [];
   else {
-    const cnt = (t, w) => t.split(w).length - 1;
-    let hits = SX.filter((x) => ws.every((w) => x.lt.includes(w) || x.lb.includes(w)));
-    // 낱말이 모두 들어간 결과가 없으면 2글자 조합 기준으로 넓혀 찾음(띄어쓰기·조사 차이)
-    if (!hits.length) { const g = grams(q); hits = SX.filter((x) => { let n = 0; g.forEach((y) => (x.lt.includes(y) || x.lb.includes(y)) && n++); return g.size && n >= Math.ceil(g.size * 0.7); }); }
-    const score = (x) => ws.reduce((a, w) => a + cnt(x.lt, w) * 3 + Math.min(cnt(x.lb, w), 3), 0);
+    // 비슷한 말·문장 검색(조사·어미 떼기, 비슷한 말 넓히기, 낱말이 많이 맞는 순)
     const rank = (x) => (x.k === "reg" ? 0 : x.c.판정 === "참고" ? 2 : 1);
-    sHits = hits.map((x) => [score(x), x]).sort((a, b) => b[0] - a[0] || rank(a[1]) - rank(b[1]) || (b[1].c?.일자 || "").localeCompare(a[1].c?.일자 || "")).map(([, x]) => x);
+    sHits = Search.find(SX, q, (x) => x.lt, (x) => x.lb).sort((a, b) => b[0] - a[0] || rank(a[1]) - rank(b[1]) || (b[1].c?.일자 || "").localeCompare(a[1].c?.일자 || "")).map(([, x]) => x);
   }
   const nReg = sHits.filter((x) => x.k === "reg").length;
   $("#tabSearch").textContent = sHits.length ? `검색 ${sHits.length}` : "검색";
@@ -465,9 +485,9 @@ function runSearch() {
     `<button type="button" data-s="${k}" aria-pressed="${sFilter === k}"><span>${t}</span><b>${n}</b></button>`).join("");
   sPage = 0; drawSearch();
 }
-const mark = (s, ws) => ws.reduce((h, w) => h.split(esc(w)).join(`<mark>${esc(w)}</mark>`), esc(s));
+const mark = (s, ws) => Search.mark(s, ws, esc);
 function drawSearch() {
-  const ws = $("#sQ").value.trim().split(/\s+/).filter(Boolean);
+  const ws = Search.words($("#sQ").value.trim());
   const list = sFilter === "all" ? sHits : sHits.filter((x) => x.k === sFilter);
   const box = $("#sCards");
   // 화면 높이에 맞춰 한 쪽 결과 수 계산 (스크롤 없이)

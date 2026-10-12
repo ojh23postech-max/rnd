@@ -150,7 +150,7 @@ def validate(rules, cases):
     for r in rules["rules"]:
         if not r["base"]["근거"]:
             errs.append(f"{r['id']}: base 근거 없음")
-        for c in r["checks"] + r["agree"]:
+        for c in r["checks"] + r["agree"] + r["연계"]:
             if not c.get("근거"):
                 errs.append(f"{r['id']}: 근거 없는 조건 {c}")
             for f, op, v in c["when"]:
@@ -170,11 +170,11 @@ if __name__ == "__main__":
     # IRIS 연구수행문의는 상세 화면에서 '공개'를 확인하며 전문기관을 기록한 글만 게시(목록 코드만으로는 비공개글이 섞일 수 있음)
     cases = [c for c in cases if c["유형"] != "규정조항" and (c["출처"] != "IRIS 연구수행문의" or c.get("전문기관"))] + article_cases(texts)
     for r in rules["rules"]:
-        for c in [r["base"]] + r["checks"] + r["agree"]:
+        for c in [r["base"]] + r["checks"] + r["agree"] + r["연계"]:
             for g in c["근거"]:
                 pages = find_doc(texts, g["문서"]) if g.get("출처") != "법제처" else find_doc(regs, g["문서"])
                 assert pages, f"문서 없음: {g['문서']}"
-                g["발췌"] = excerpt(pages, g["쪽"], g["조항"] + " " + c.get("사유", c.get("내용", "")), g.get("find"))
+                g["발췌"] = excerpt(pages, g["쪽"], g["조항"] + " " + c.get("사유", c.get("내용", c.get("할일", ""))), g.get("find"))
                 if g.get("find") and not any(p["page"] == g["쪽"] and g["find"] in p["text"] for p in pages):
                     g["쪽"] = next(p["page"] for p in pages if g["find"] in p["text"])  # 보정된 쪽 반영
     validate(rules, cases)
@@ -183,7 +183,7 @@ if __name__ == "__main__":
     for r in rules["rules"]:
         for q in r["questions"]:
             ts, ms = set(), set()  # ms: 특정 부처에서만 쓰는 질문이면 그 부처들, 하나라도 부처 무관이면 None
-            for c in r["checks"] + r["agree"]:
+            for c in r["checks"] + r["agree"] + r["연계"]:
                 if any(k == q["id"] for k, _, _ in c["when"]):
                     t = ALL.copy()
                     for k, op, v in c["when"]:
@@ -202,7 +202,7 @@ if __name__ == "__main__":
         if c["출처"].startswith("POSTECH"):
             c["답변"] = gist(c["답변"])
     for r in rules["rules"]:
-        for c in [r["base"]] + r["checks"] + r["agree"]:
+        for c in [r["base"]] + r["checks"] + r["agree"] + r["연계"]:
             for g in c["근거"]:
                 if g["문서"].startswith("POSTECH"):
                     g["발췌"] = gist(g["발췌"])

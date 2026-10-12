@@ -101,7 +101,7 @@ legend { font-size: .8rem; font-weight: 500; color: var(--ink-2); padding: 0; ma
 .quick button { border: 0; background: var(--fill); border-radius: 999px; padding: .5rem 1rem; font-size: .9rem; font-weight: 600; color: var(--ink-2); transition: background .15s, color .15s; }
 .quick button:hover { background: var(--blue-weak); color: var(--blue); }
 
-.verdict { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto 1fr; column-gap: 1.1rem; row-gap: 1rem; height: 100%; min-height: 0; }
+.verdict { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto auto 1fr; column-gap: 1.1rem; row-gap: 1rem; height: 100%; min-height: 0; }
 .seal { --c: var(--ok); --cb: var(--ok-bg); width: 3.8rem; height: 3.8rem; border-radius: 50%; display: grid; place-items: center; background: var(--cb); color: var(--c); align-self: start; margin-top: .2rem; }
 .seal[data-v="판단필요"] { --c: var(--warn); --cb: var(--warn-bg); }
 .seal[data-v="불인정"] { --c: var(--bad); --cb: var(--bad-bg); }
@@ -132,6 +132,14 @@ legend { font-size: .8rem; font-weight: 500; color: var(--ink-2); padding: 0; ma
 .reasons .more { display: block; background: none; padding: 0; }
 .reasons .more button { border: 0; background: var(--fill); border-radius: var(--r-sm); padding: .5rem 1rem; font-size: .86rem; font-weight: 600; color: var(--ink-2); }
 
+/* 함께 처리할 일: 이 집행·변경 때문에 같이 바꾸거나 등록해야 하는 다른 업무 */
+.links { grid-column: 1 / -1; border: 1px solid var(--line); border-left: 3px solid var(--blue); border-radius: var(--r-md); padding: .7rem 1rem; }
+.links h3 { margin: 0 0 .35rem; font-size: .9rem; font-weight: 700; }
+.links ul { margin: 0; padding: 0; list-style: none; display: grid; gap: .35rem; font-size: .86rem; line-height: 1.5; color: var(--ink); }
+.links li { padding-left: 1.1rem; position: relative; }
+.links li::before { content: "→"; position: absolute; left: 0; color: var(--blue); font-weight: 700; }
+.links button { border: 0; background: none; padding: 0; margin-left: .35rem; font-size: .8rem; font-weight: 600; color: var(--blue); }
+.links button:hover { text-decoration: underline; }
 .split { grid-column: 1 / -1; display: grid; grid-template-columns: 1.2fr 1fr; gap: .7rem; align-self: end; }
 .box { border: 1px solid var(--line); border-radius: var(--r-md); padding: .8rem 1rem; min-height: 0; }
 .box h3 { margin: 0 0 .4rem; font-size: .9rem; font-weight: 700; }
