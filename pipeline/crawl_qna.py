@@ -4,6 +4,7 @@
   기관 결정(2026-10-10)으로 공개·답변완료 글만 저속(요청 간 3초) 수집한다. 차단·요청 시 즉시 중단할 것.
 - NRF는 답변완료 글이 14만 건이 넘어 실행마다 신규 글 + 과거 글 일부(--nrf-pages, --nrf-details)만 이어서 수집한다.
 - 공개글(blltOpenRangSe == PG5002, 상세 화면 '공개여부: 공개')이면서 답변이 달린 글만 저장. 작성자 이름·연락처는 저장하지 않는다.
+- 연구수행문의 '이전 게시판'(옛 조문해석요청, /contents/ 경로)은 공개·답변완료 글만 한 번 끝까지 받는다(--old-details, --skip-old).
 - 증분 수집: data/board_state.json에 마지막 글번호와 답변 대기 글을 기록. 요청 간 1.5초 지연.
 사용: python pipeline/crawl_qna.py [--pages N] [--nrf-pages 150] [--nrf-details 1500] [--skip-iris|--skip-nrf]
 """
@@ -141,6 +142,71 @@ def crawl(max_pages, state, cases):
         STATE.write_text(json.dumps(state, ensure_ascii=False, indent=1), encoding="utf-8")  # 게시판별 중간 저장
 
 
+OLD = "IRIS 조문해석요청(이전 게시판)"
+OLD_LIST, OLD_VIEW = "/contents/retrieveSmgAskRspdListPopup.do", "/contents/retrievePrvsnIntrprtRqsOldView.do"
+
+
+def old_list(n):
+    # 연구수행문의 '이전 게시판 검색' 팝업, 조문해석요청(jomun)만. 사업과제문의는 모두 비밀글. 한 쪽 10건
+    r = s.post(BASE + OLD_LIST, data={"blbdTp": "jomun", "pageIndex": n, "blbdId": "00000027", "blbdType": "smgAsk"}, timeout=30)
+    r.raise_for_status()
+    rows = []
+    for tr in re.findall(r"<tr>(.*?)</tr>", r.text, re.S):
+        m = re.search(r"f_askRspd_popup_view\('00000027','(\d+)','(\w+)'\); return false;\">([^<]*)</a>", tr)  # 공개글만 상세 링크가 있음
+        d = re.search(r'등록일자">([\d/]+)', tr)
+        if m and d and "state end" in tr:  # 답변 완료만
+            rows.append({"seq": int(m.group(1)), "cl": m.group(2), "title": html.unescape(m.group(3)).strip(), "date": d.group(1).replace("/", "-")})
+    last = re.search(r'page_last"[^>]*f_askRspd_popup_search\((\d+)\)', r.text)
+    return rows, int(last.group(1)) if last else n
+
+
+def old_detail(x):
+    r = s.post(BASE + OLD_VIEW, data={"pageIndex": 1, "blltSeq": x["seq"], "prvsnIntrprtRqsDetail": "prvsnIntrprtRqsDetail", "blbdType": "smgAsk",
+                                      "blbdId": "00000027", "blltClSe": x["cl"], "blbdTp": "jomun"}, headers={"Referer": BASE + OLD_LIST}, timeout=30)
+    r.raise_for_status()
+    t = r.text
+    f = lambda k: (m.group(1).strip() if (m := re.search(r"<strong>" + k + r"</strong>\s*<span[^>]*>\s*([^<]*)", t)) else "")
+    q = re.search(r'id="blltCn"[^>]*>(.*?)</div>', t, re.S)
+    a = re.search(r'class="reply_txt">(.*?)<div class="btn_area"', t, re.S)  # 답변 안에 div가 겹쳐 있어 버튼 영역 앞까지
+    return (scrub(q.group(1)) if q else ""), (scrub(a.group(1)) if a else ""), f("해석요청 법규"), f("제도 분야\\(중분류\\)"), f("소관 전문기관")
+
+
+def old_case(x, q, a, law, field, org):
+    v, why = verdict(a, "Q&A")
+    return {"id": f"iris27-{x['seq']}", "출처구분": "IRIS", "출처": OLD, "쪽": None, "유형": "게시판",
+            "제목": x["title"][:160], "질의": q[:600] or x["title"], "답변": a[:1500], "비목": bimok(f"{x['title']} {field} {q[:300]}"),
+            "판정": v, "판정근거": why, "작성일": x["date"], "근거조문": law[:80], "소관기관": org,  # 혁신법 조문 해석이라 부처 구분 없이 공통
+            "원문URL": BASE + "/contents/retrieveSmgAskRspdListView.do", "게시번호": x["seq"]}
+
+
+def crawl_old(state, cases, max_details, save=lambda: None):
+    """이전 게시판은 더 늘지 않으므로 한 번 끝까지 받으면 끝(쪽 진행·대기 목록 저장)"""
+    st = state.setdefault(OLD, {"page": 1, "done": False})
+    todo, total = st.pop("pending", []), st.get("total", 1)
+    left = lambda: sum(f"iris27-{x['seq']}" not in cases for x in todo)
+    s.get(BASE + "/contents/retrieveSmgAskRspdListView.do", timeout=30)  # 세션 쿠키
+    while not st["done"] and left() < max_details:
+        rows, total = old_list(st["page"]); time.sleep(DELAY)
+        todo += rows
+        st["page"] += 1; st["total"] = total
+        if st["page"] > total:
+            st["done"] = True
+    got, fail, want = 0, [], [x for x in todo if f"iris27-{x['seq']}" not in cases]
+    st["pending"] = want[max_details:]
+    for i, x in enumerate(want[:max_details]):
+        if i and i % 200 == 0:
+            st["pending"] = fail + want[i:]; save(); st["pending"] = fail + want[max_details:]
+        try:
+            q, a, law, field, org = old_detail(x)
+        except requests.RequestException as e:
+            print("이전 게시판 상세 실패", x["seq"], e); fail.append(x); st["pending"] = fail + want[max_details:]; continue
+        finally:
+            time.sleep(DELAY)
+        if a:
+            cases[f"iris27-{x['seq']}"] = old_case(x, q, a, law, field, org); got += 1
+    print(f"{OLD}: 목록 {st['page'] - 1}/{total}쪽, 신규 저장 {got}건, 다음으로 넘긴 글 {len(st['pending'])}건{' (목록 완료)' if st['done'] else ''}")
+
+
 NRF = "https://www.nrf.re.kr"
 NRF_LIST = NRF + "/page/47"
 NRF_DELAY = 3
@@ -263,6 +329,8 @@ if __name__ == "__main__":
     try:
         if "--skip-iris" not in sys.argv:
             crawl(arg("--pages", 10**6), state, cases)
+        if "--skip-old" not in sys.argv and not (state.get(OLD, {}).get("done") and not state[OLD].get("pending")):
+            crawl_old(state, cases, arg("--old-details", 1500), lambda: save(state, cases))
         if "--skip-nrf" not in sys.argv:
             crawl_nrf(state, cases, arg("--nrf-pages", 150), arg("--nrf-details", 1500), lambda: save(state, cases))
     finally:  # 중간에 끊겨도 받은 만큼 저장
