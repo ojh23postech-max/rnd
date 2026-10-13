@@ -203,15 +203,15 @@ def crawl_nrf(state, cases, max_pages, max_details, save=lambda: None):
             st["backfillDone"] = True; break
         todo += [x for x in rows if x["open"] and x["date"] >= NRF_SINCE and nrf_topic(x["title"])]
         st["backfillPage"] += 1
-    got, want = 0, [x for x in todo if f"nrf-{x['no']}" not in cases]
+    got, fail, want = 0, [], [x for x in todo if f"nrf-{x['no']}" not in cases]
     st["pending"] = want[max_details:]  # 못 받은 글은 다음 실행으로 넘김
     for i, x in enumerate(want[:max_details]):
         if i and i % 200 == 0:  # 중간에 끊겨도 받은 만큼 남기고, 아직 못 받은 글은 대기 목록에
-            st["pending"] = want[i:]; save(); st["pending"] = want[max_details:]
+            st["pending"] = fail + want[i:]; save(); st["pending"] = fail + want[max_details:]
         try:
             q, a = nrf_detail(x["no"])
         except requests.RequestException as e:
-            print("NRF 상세 실패", x["no"], e); continue
+            print("NRF 상세 실패", x["no"], e); fail.append(x); st["pending"] = fail + want[max_details:]; continue
         finally:
             time.sleep(NRF_DELAY)
         if a:
