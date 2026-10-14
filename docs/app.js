@@ -283,7 +283,7 @@ function renderCases(v = lastV) {
     // 사례 검색은 고른 항목 관련 사례에 갇히지 않게 이 부처 전체 사례에서 찾고, 항목 관련 사례를 같은 점수 안에서 위로
     const inBase = new Set(base);
     const all = sq ? Search.find(D.cases.filter(caseFits), sq, T, B, true).map(([, c]) => c) : D.cases.filter(caseFits);
-    if (cq) matched = Search.find(all, cq, T, B).map(([s, c]) => [s + (inBase.has(c) ? 50 : 0), c]).sort((a, b) => b[0] - a[0] || (a[1].판정 === "참고") - (b[1].판정 === "참고") || (b[1].출처구분 === "참고자료") - (a[1].출처구분 === "참고자료")).map(([, c]) => c);
+    if (cq) matched = Search.find(all, cq, T, B).map(([s, c]) => [s + (inBase.has(c) ? 50 : 0) + Search.prior(c), c]).sort((a, b) => b[0] - a[0] || (b[1].출처구분 === "참고자료") - (a[1].출처구분 === "참고자료")).map(([, c]) => c);
     else if (!base.length) matched.sort((a, b) => (a.판정 === "참고") - (b.판정 === "참고") || (b.출처구분 === "참고자료") - (a.출처구분 === "참고자료"));
   }
   const cnt = cntOf(matched), baseCnt = cntOf(base);
@@ -478,44 +478,32 @@ function tab(name) {
 
 // 검색 탭: 고른 항목·부처와 상관없이 사례 전체와 규정(내규·운영요령 조항 + 판정 규칙의 근거 발췌)을 한꺼번에 찾음
 let SX = null, sHits = [], sFilter = "all", sPage = 0;
-function searchIndex() {
-  const regs = new Map();
-  D.cases.filter((c) => c.유형 === "규정조항").forEach((c) => regs.set(c.id, { k: "reg", id: c.id, 문서: c.출처, 쪽: c.쪽, 제목: c.제목, 본문: c.답변, 위치: where(c.출처, c.쪽), 일자: c.일자 || "", items: [] }));
-  // 판정 규칙의 근거(혁신법 매뉴얼·사용기준·부처 규정 등): 같은 문서·조항은 하나로 묶고 이 근거로 판정하는 항목을 함께 보여 줌
-  D.rules.forEach((r) => [r.base, ...r.checks, ...r.agree, ...r.연계].forEach((x) => x.근거.forEach((g) => {
-    if (!g.발췌) return;
-    const key = g.문서 + "|" + g.조항;
-    if (!regs.has(key)) regs.set(key, { k: "reg", id: key, 문서: g.문서, 쪽: g.쪽, 제목: g.조항, 본문: g.발췌, 위치: g.출처 === "법제처" ? "법제처 현행" : where(g.문서, g.쪽), 일자: "", items: [] });
-    const e = regs.get(key); if (!e.items.includes(r)) e.items.push(r);
-  })));
-  const cases = D.cases.filter((c) => c.유형 !== "규정조항").map((c) => ({ k: "case", id: c.id, c, 제목: c.제목, 본문: (c.질의 || "") + " " + c.답변 + " " + c.비목 + " " + c.출처 })); // 게시글 질문 본문도 검색
-  return [...regs.values(), ...cases].map((x) => ({ ...x, lt: x.제목.toLowerCase(), lb: (x.문서 || "").toLowerCase() + " " + x.본문.toLowerCase() }));
-}
 function runSearch() {
-  SX ||= searchIndex();
+  SX ||= Search.index(D, where);
   const q = $("#sQ").value.trim().toLowerCase(), ws = q.split(/\s+/).filter(Boolean);
   if (!ws.length) sHits = [];
   else {
-    // 비슷한 말·문장 검색(조사·어미 떼기, 비슷한 말 넓히기, 낱말이 많이 맞는 순)
-    const rank = (x) => (x.k === "reg" ? 0 : x.c.판정 === "참고" ? 2 : 1);
-    sHits = Search.find(SX, q, (x) => x.lt, (x) => x.lb).sort((a, b) => b[0] - a[0] || rank(a[1]) - rank(b[1]) || (b[1].c?.일자 || "").localeCompare(a[1].c?.일자 || "")).map(([, x]) => x);
+    sHits = Search.hits(SX, q); // 비슷한 말·문장 검색(조사·어미 떼기, 비슷한 말 넓히기, 낱말이 많이 맞는 순)
   }
-  const nReg = sHits.filter((x) => x.k === "reg").length;
+  const nReg = sHits.filter((x) => x.k !== "case").length; // 규정 조항 + 포스텍 시스템 처리 단계
   $("#tabSearch").textContent = sHits.length ? `검색 ${sHits.length}` : "검색";
-  $("#sDist").innerHTML = [["all", "전체", sHits.length], ["case", "사례", sHits.length - nReg], ["reg", "규정", nReg]].map(([k, t, n]) =>
+  $("#sDist").innerHTML = [["all", "전체", sHits.length], ["case", "사례", sHits.length - nReg], ["reg", "규정·처리", nReg]].map(([k, t, n]) =>
     `<button type="button" data-s="${k}" aria-pressed="${sFilter === k}"><span>${t}</span><b>${n}</b></button>`).join("");
   sPage = 0; drawSearch();
 }
 const mark = (s, ws) => Search.mark(s, ws, esc);
 function drawSearch() {
   const ws = Search.words($("#sQ").value.trim());
-  const list = sFilter === "all" ? sHits : sHits.filter((x) => x.k === sFilter);
+  const list = sFilter === "all" ? sHits : sHits.filter((x) => (x.k === "case") === (sFilter === "case"));
   const box = $("#sCards");
   // 화면 높이에 맞춰 한 쪽 결과 수 계산 (스크롤 없이)
   box.innerHTML = list.length ? `<li><button class="probe"><span class="line">${tag("인정")}</span><span class="t">가<br>가<br>가</span><span class="w">가</span></button></li>` : "";
   const h = box.firstElementChild?.offsetHeight || 88, per = Math.max(2, Math.floor((box.clientHeight + 7) / (h + 7)));
   const pages = Math.max(1, Math.ceil(list.length / per)); sPage = Math.min(sPage, pages - 1);
-  box.innerHTML = list.length ? list.slice(sPage * per, sPage * per + per).map((x) => x.k === "reg"
+  box.innerHTML = list.length ? list.slice(sPage * per, sPage * per + per).map((x) => x.k === "sys"
+    ? `<li><button type="button" data-sid="${esc(x.id)}"><span class="line"><span class="src-tag reg">처리</span><span class="src-tag">포스텍 시스템</span><span class="w">${esc([x.st.경로, x.st.tcode].filter(Boolean).join(" · "))}</span></span>
+        <span class="t">${mark(x.제목, ws)}</span><span class="w">${esc(x.st.누가)} · ${esc(x.items.map((r) => r.항목).join(", "))}</span></button></li>`
+    : x.k === "reg"
     ? `<li><button type="button" data-sid="${esc(x.id)}"><span class="line"><span class="src-tag reg">규정</span><span class="src-tag">${esc(x.문서.replace(/\(.*\)/, ""))}</span><span class="w">${esc(x.위치)}${x.일자 ? ` · ${esc(x.일자)}` : ""}</span></span>
         <span class="t">${mark(x.제목, ws)}</span><span class="w">${esc(x.본문.slice(0, 90))}${x.items.length ? ` · 관련 항목 ${x.items.length}` : ""}</span></button></li>`
     : `<li><button type="button" data-sid="${esc(x.id)}"><span class="line">${tag(x.c.판정)}<span class="src-tag">${esc(x.c.출처구분 === "참고자료" ? x.c.출처.replace(/\(.*\)/, "") : x.c.출처구분)}</span><span class="w">${[x.c.원문URL ? "" : where(x.c.출처, x.c.쪽), x.c.일자 || ""].filter(Boolean).join(" · ")}</span></span>
@@ -523,6 +511,13 @@ function drawSearch() {
     : `<li class="nothing">${ws.length ? "찾는 말이 들어간 사례·규정이 없어요. 다른 말로 찾아보세요." : "찾을 말을 입력하면 모든 사례와 규정에서 한 번에 찾아 드려요.<br><small>고른 집행 항목·부처와 상관없이 전체에서 찾습니다.</small>"}</li>`;
   $("#sPage").textContent = `${list.length ? sPage + 1 : 0} / ${list.length ? pages : 0}`;
   $("#sPrev").disabled = sPage === 0; $("#sNext").disabled = sPage >= pages - 1;
+}
+// 시스템 처리 단계: 단계 설명·근거와 이 단계가 있는 항목(누르면 그 항목 점검 화면에서 전체 처리 순서를 봄)
+function showSys(x) {
+  const s = x.st;
+  openDlg(`<p><span class="src-tag reg">처리</span> <span class="src-tag">포스텍 시스템</span> <span class="w">${esc(s.누가)}</span></p>
+    <h3>${esc(s.할일)}</h3><div class="steps"><p>${[s.경로, s.tcode].filter(Boolean).map((v) => `<code>${esc(v)}</code>`).join(" ")}</p>${s.설명 ? `<p class="d">${esc(s.설명)}</p>` : ""}<small>${(s.근거 || []).map(cite).map(esc).join(" / ")}</small></div>
+    <p class="why">이 단계가 있는 항목 (누르면 바로 점검하고 전체 처리 순서를 보여 줌)</p><div class="rel-items">${x.items.map((r) => `<button type="button" data-rule="${r.id}">${esc(r.항목)}</button>`).join("")}</div>`);
 }
 function showReg(x) {
   openDlg(`<p><span class="src-tag reg">규정</span> <span class="src-tag">${esc(x.문서)}</span> <span class="w">${x.위치 === "법제처 현행" ? esc(x.위치) : srcLink(x.문서, x.쪽)}</span></p>
@@ -556,7 +551,7 @@ $("#quick").addEventListener("click", (e) => { if (e.target.tagName === "BUTTON"
 $("#caseQ").addEventListener("input", () => { filter = null; renderCases(); });
 $("#sQ").addEventListener("input", () => { clearTimeout(runSearch.t); runSearch.t = setTimeout(runSearch, 150); });
 $("#sDist").addEventListener("click", (e) => { const b = e.target.closest("[data-s]"); if (!b) return; sFilter = b.dataset.s; runSearch(); });
-$("#sCards").addEventListener("click", (e) => { const b = e.target.closest("[data-sid]"); if (!b) return; const x = SX.find((y) => y.id === b.dataset.sid); x.k === "reg" ? showReg(x) : showCase(x.c); });
+$("#sCards").addEventListener("click", (e) => { const b = e.target.closest("[data-sid]"); if (!b) return; const x = SX.find((y) => y.id === b.dataset.sid); x.k === "sys" ? showSys(x) : x.k === "reg" ? showReg(x) : showCase(x.c); });
 $("#sPrev").onclick = () => { sPage--; drawSearch(); };
 $("#sNext").onclick = () => { sPage++; drawSearch(); };
 // 규정 창의 관련 항목 단추: 창을 닫고 그 항목으로 점검

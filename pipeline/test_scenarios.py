@@ -1,5 +1,5 @@
 """판정 시나리오 검증: docs/app.js 판정 로직을 그대로 재현해 rules.json 기대 결과를 확인 (토큰 0)
-실행: python pipeline/test_scenarios.py
+실행: python pipeline/test_scenarios.py  (끝에 사이트 검색 평가 node pipeline/search_eval.mjs --check 도 함께 돌림)
 """
 import json, operator
 from datetime import date
@@ -174,4 +174,10 @@ if __name__ == "__main__":
         print(("✓" if ok else "✗"), "[함께 처리]", desc, f"→ {got}")
     S += L
     print(f"\n{len(S) - fail}/{len(S)} 통과")
+    # 사이트 검색 회귀: docs/search.js로 pipeline/search_eval.json 질문을 찾아 Top-5 적중률·MRR이 기준 아래면 실패 (따로: node pipeline/search_eval.mjs)
+    import shutil, subprocess
+    if shutil.which("node"):
+        fail += subprocess.run(["node", str(ROOT / "pipeline" / "search_eval.mjs"), "--check", "--quiet"]).returncode != 0
+    else:
+        print("! node가 없어 검색 평가(search_eval.mjs)를 건너뜀")
     raise SystemExit(1 if fail else 0)

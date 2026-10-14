@@ -75,7 +75,7 @@ function apply() {
   if (st.sort === "new") hits.sort((a, b) => (b.일자 || "").localeCompare(a.일자 || ""));
   else if (st.sort === "old") hits.sort((a, b) => (a.일자 || "9").localeCompare(b.일자 || "9"));
   else {
-    const sc = (c) => SC.get(c) || 0;
+    const sc = (c) => (st.q ? (SC.get(c) || 0) + Search.prior(c) : 0); // 검색 탭과 같은 가산(판정 있는 사례·검수 사례)
     // 부처를 고르면 그 부처 전용 기준(예: 산업부 공통 운영요령)을 먼저, 거기 없는 사항은 혁신법 공통 사례를 뒤에
     const own = (c) => (st.m && c.부처.includes(st.m) ? 0 : 1);
     hits = hits.map((c) => [sc(c), c]).sort((a, b) => b[0] - a[0] || own(a[1]) - own(b[1]) || rk(a[1]) - rk(b[1]) || official(a[1]) - official(b[1]) || (b[1].일자 || "").localeCompare(a[1].일자 || "")).map(([, c]) => c);

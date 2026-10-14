@@ -21,17 +21,21 @@ const Search = (() => {
     "보험 여행자보험 보험료", "비자 여권 비자발급", "소급 지난달 이전달 밀린",
     "퇴직 퇴직금 퇴직급여", "4대보험 사회보험 국민연금 건강보험 고용보험 산재보험", "가구 책상 의자 비품 사물함",
     "냉장고 에어컨 냉난방기 가전 정수기", "도서 서적 책구입 전자책", "임차 리스 렌탈 대여 임대",
-    "수리 유지보수 수선 보수비", "인턴 연구보조원 보조인력 아르바이트", "외국인 외국인연구원 해외연구자",
+    "수리 유지보수 수선 보수비", "인턴 연구보조원 보조인력 아르바이트 알바 일용직", "외국인 외국인연구원 해외연구자",
     "증빙 영수증 증빙서류 세금계산서 카드전표", "회의록 결과보고서 출장보고서 보고서",
-    "책임자 연구책임자 교수 pi", "연구년 파견 안식년", "종료 만료 과제종료 종료일", "기간 연장 기간연장",
+    "책임자 연구책임자 교수 pi", "연구년 파견 안식년", "종료 만료 과제종료 종료일 끝난 끝나고 끝나면 끝날", "기간 연장 기간연장",
     "중고 중고품 리퍼", "주말 휴일 공휴일 야간 야근 특근", "교육 교육훈련 연수 훈련",
     "감액 감소 축소 삭감 줄이 줄여 줄인 줄이면 줄여야 줄어 줄어들", "증액 증가 확대 늘리 늘려 늘린 늘리면 늘려야 늘어",
     "변경 바꾸 바꿔 바뀌 교체", "추가 신규 새로",
+    // 새 제도·포스텍 시스템 처리 용어
+    "연구혁신비 혁신비", "사전품의 품의 품의서 사전결재 내부결재", "전표 임시전표 전표발행 결재요청",
+    "권한이양 이양 권한위임 위임 대행", "확약서 연구참여확약서 참여확약서", "정산 집행등록 사후정산",
+    "povis 포비스", "t-code tcode 티코드 sap", "기타소득 사업소득 원천징수 원천세", "대체신청 대체 자금이동",
   ].map((s) => s.split(" "));
   const IDX = new Map();
   SYN.forEach((g) => g.forEach((w) => IDX.set(w, g)));
   // 묻는 말투·모든 사례에 흔한 말은 검색어에서 뺌(낱말 전체가 일치할 때만)
-  const STOP = new Set(("연구비 연구개발비 집행 가능 가능한가요 가능한지 가능할까요 가능여부 여부 경우 관련 문의 질문 어떻게 무엇 왜 언제 어디 " +
+  const STOP = new Set(("해요 가서 연구비 연구개발비 집행 가능 가능한가요 가능한지 가능할까요 가능여부 여부 경우 관련 문의 질문 어떻게 무엇 왜 언제 어디 " +
     "있나요 있는지 없나요 되나요 되는지 될까요 돼요 되요 하나요 할까요 인가요 인지 맞나요 해도 써도 쓸 수 것 등 및 해당 사용 지출 처리 " +
     "때 시 저 제 우리 이번 해당과제 과제에서 과제 연구 비용 금액 얼마 얼마나 혹시 그리고 또는 대한 대해 위해 위한 통해 중 동안 사도 해야 먹어 먹은 먹고 먹어도 마셔 마셔도 마신 마시고 사용해도 집행해도 돼서 되어서 됐어요 됐는데 안돼서 못해서").split(" "));
   const JOSA = /(으로써|으로서|에서는|에게서|으로는|이라도|이라면|에서|에게|까지|부터|처럼|보다|이나|이랑|하고|에는|에도|으로|만큼|로|을|를|이|가|은|는|에|의|와|과|도|만|랑|님)$/;
@@ -86,39 +90,60 @@ const Search = (() => {
   // 긴 답변 뒤쪽에만 지나가듯 나오는 말은 0.6개로만 셈(긴 글이 모든 검색에 걸려 위로 오는 것 방지)
   // 못 찾으면 2글자 조합이 3분의 2 이상 겹칠 때 반만 인정
   const HEAD = 400;
-  function score(terms, title, body) {
-    let hit = 0, s = 0;
-    const t = title, t0 = t.replace(/\s+/g, ""), h = body.slice(0, HEAD), h0 = h.replace(/\s+/g, ""), b0 = body.replace(/\s+/g, "");
-    for (const { w, alts } of terms) {
-      let best = 0, part = 0;
-      for (const a of alts) {
-        if (a.length < 2 && a !== w) continue;
-        const v = t.includes(a) || t0.includes(a) ? 3 : h.includes(a) || h0.includes(a) ? 1 : 0;
-        if (v) best = Math.max(best, v + (a === w ? 1 : 0));
-        else if (!part && b0.includes(a)) part = 1;
-      }
-      if (best) { hit++; s += best; continue; }
-      if (part) { hit += 0.6; s += 0.5; continue; }
-      if (w.length >= 3) {
-        const g = bi(w), n = g.filter((x) => t0.includes(x) || b0.includes(x)).length;
-        if (n >= Math.ceil(g.length * 2 / 3)) { hit += 0.5; s += 0.5; }
-      }
+  // 글마다 공백 뺀 제목·본문을 한 번만 만들어 둠(검색할 때마다 11,650건을 다시 자르지 않게)
+  // shortcut: 글(객체)마다 처음 쓴 getT·getB 결과로 고정, 같은 글을 다른 본문으로 찾을 일이 생기면 캐시 키에 getB를 넣을 것
+  const PREP = new WeakMap();
+  function prep(x, getT, getB) {
+    let p = PREP.get(x);
+    if (!p) {
+      const t = getT(x), b = getB(x), h = b.slice(0, HEAD);
+      const t0 = t.replace(/\s+/g, "");
+      PREP.set(x, (p = { t0, h0: h.replace(/\s+/g, ""), all: t0 + "|" + b.replace(/\s+/g, "") })); // 찾는 말에는 공백이 없어 공백 뺀 글만 보면 됨
     }
-    return { hit, s };
+    return p;
+  }
+  function score(terms, { t0, h0, all }) {
+    let hit = 0;
+    const v = []; // 낱말 묶음마다 [맞은 정도, 점수]
+    for (const { w, alts } of terms) {
+      let best = 0, part = 0, r = [0, 0];
+      for (const a of alts) {
+        if ((a.length < 2 && a !== w) || !all.includes(a)) continue; // 글 전체에 없으면 바로 다음 말(대부분 여기서 끝남)
+        const m = t0.includes(a) ? 3 : h0.includes(a) ? 1 : 0;
+        if (m) best = Math.max(best, m + (a === w ? 1 : 0));
+        else part = 1;
+      }
+      if (best) r = [1, best];
+      else if (part) r = [0.6, 0.5];
+      else if (w.length >= 3) {
+        const g = bi(w), n = g.filter((x) => all.includes(x)).length;
+        if (n >= Math.ceil(g.length * 2 / 3)) r = [0.5, 0.5];
+      }
+      hit += r[0]; v.push(r);
+    }
+    return { hit, v };
   }
 
   // 검색: 낱말 묶음이 1~2개면 모두, 3~4개면 60%, 5개 이상(긴 문장)이면 절반 이상 맞는 글만 → [점수, 글] (많이 맞을수록 높음)
   // strict: 모든 낱말이 (비슷한 말로라도) 맞아야 함 — 판정 추정처럼 엄격해야 할 때
+  // 점수는 낱말마다 IDF(찾는 범위에서 그 말이 나오는 글이 많을수록 낮게)를 곱함: '문의'보다 '소급'이 맞는 글이 위로
   function find(items, q, getT, getB, strict = false) {
     const terms = parse(q);
     if (!terms.length) return items.map((x) => [0, x]);
     const n = terms.length, need = strict || n <= 2 ? n : Math.max(2, Math.ceil(n * (n >= 5 ? 0.5 : 0.6)));
-    const out = [];
+    const rows = [], df = terms.map(() => 0);
     for (const x of items) {
-      const r = score(terms, getT(x), getB(x));
-      if (r.hit >= need) out.push([r.hit * 100 + r.s, x]);
+      const r = score(terms, prep(x, getT, getB));
+      r.v.forEach(([m], i) => m && df[i]++);
+      if (r.hit >= need) rows.push([r, x]);
     }
-    return out;
+    const idf = df.map((d) => Math.log((items.length + 1) / (d + 1)) + 1), avg = idf.reduce((a, b) => a + b, 0) / n;
+    const wt = idf.map((x) => x / avg);
+    return rows.map(([r, x]) => {
+      let s = 0;
+      r.v.forEach(([, p], i) => (s += p * wt[i]));
+      return [r.hit * 100 + s, x]; // 맞은 낱말 수가 먼저, 같으면 드문 말이 맞은 글이 위
+    });
   }
   const rank = (...a) => find(...a).sort((x, y) => y[0] - x[0]).map(([, x]) => x);
 
@@ -133,5 +158,39 @@ const Search = (() => {
     s.replace(re, (m, off) => { out += esc(s.slice(i, off)) + `<mark>${esc(m)}</mark>`; i = off + m.length; return m; });
     return out + esc(s.slice(i));
   };
-  return { parse, find, rank, words, expanded, stem, mark };
+  // 검색 탭 목록(사례 + 규정 조항 + 판정 규칙의 근거): 화면(app.js)과 평가(pipeline/search_eval.mjs)가 같은 함수를 씀
+  function index(D, where) {
+    const regs = new Map();
+    D.cases.filter((c) => c.유형 === "규정조항").forEach((c) => regs.set(c.id, { k: "reg", id: c.id, 문서: c.출처, 쪽: c.쪽, 제목: c.제목, 본문: c.답변, 위치: where(c.출처, c.쪽), 일자: c.일자 || "", items: [] }));
+    // 판정 규칙의 근거(혁신법 매뉴얼·사용기준·부처 규정 등): 같은 문서·조항은 하나로 묶고 이 근거로 판정하는 항목을 함께 보여 줌
+    D.rules.forEach((r) => [r.base, ...r.checks, ...r.agree, ...r.연계].forEach((x) => x.근거.forEach((g) => {
+      if (!g.발췌) return;
+      const key = g.문서 + "|" + g.조항;
+      if (!regs.has(key)) regs.set(key, { k: "reg", id: key, 문서: g.문서, 쪽: g.쪽, 제목: g.조항, 본문: g.발췌, 위치: g.출처 === "법제처" ? "법제처 현행" : where(g.문서, g.쪽), 일자: "", items: [] });
+      const e = regs.get(key); if (!e.items.includes(r)) e.items.push(r);
+    })));
+    // 포스텍 시스템 처리 단계(POVIS 메뉴·SAP T-code): 여러 항목에 같은 단계(전표 결재 등)는 하나로 묶고 항목을 함께 보여 줌
+    const sys = new Map();
+    D.rules.forEach((r) => (r.시스템 || []).forEach((st) => {
+      const key = "sys|" + st.할일 + "|" + (st.경로 || "") + "|" + (st.tcode || "");
+      if (!sys.has(key)) sys.set(key, { k: "sys", id: key, st, 제목: st.할일, 본문: [st.경로, st.tcode && "SAP T-code " + st.tcode, st.누가, st.설명].filter(Boolean).join(" "), items: [] });
+      sys.get(key).items.push(r);
+    }));
+    sys.forEach((x) => (x.본문 += " " + x.items.map((r) => r.항목).join(" ")));
+    const cases = D.cases.filter((c) => c.유형 !== "규정조항").map((c) => ({ k: "case", id: c.id, c, 제목: c.제목, 본문: (c.질의 || "") + " " + c.답변 + " " + c.비목 + " " + c.출처 })); // 게시글 질문 본문도 검색
+    return [...sys.values(), ...regs.values(), ...cases].map((x) => ({ ...x, lt: x.제목.toLowerCase(), lb: (x.문서 || "").toLowerCase() + " " + x.본문.toLowerCase() }));
+  }
+  // 순위 가산(같은 낱말 수 안에서만 움직일 만큼 작게): 판정 있는 사례 > 참고, 검수 사례 > 자동분류
+  // 공식 매뉴얼·사례집 가산은 뺌: 평가에서 '이자'가 '위반이자·대표이사이자'에 걸린 공식 자료를 끌어올려 오히려 나빠짐(가산·동점 우선 모두)
+  const prior = (c) => (c.판정 !== "참고" ? 0.2 : 0) + (c.자동 ? 0 : 0.2);
+  // 검색 탭 순위: 점수(+가산, 규정 조항은 판정 있는 검수 사례와 같게) → 최신
+  // 처리 방법을 묻는 말이면 맞는 시스템 단계 2개를 맨 위에(나머지 단계는 점수대로)
+  const HOW = /어떻게|방법|절차|처리|등록|결재|정산|신청|품의|전표|발행|입력|메뉴|이양|확약서|povis|포비스|sap|t-?code|티코드|zpsr|zfir/i;
+  // 검색 탭 순위: 점수(+가산, 규정 조항·시스템 단계는 판정 있는 검수 사례와 같게) → 최신
+  function hits(SX, q) {
+    const r = find(SX, q, (x) => x.lt, (x) => x.lb).map(([s, x]) => [s + (x.k === "case" ? prior(x.c) : 0.4), x]);
+    if (HOW.test(q)) r.filter(([, x]) => x.k === "sys").sort((a, b) => b[0] - a[0]).slice(0, 2).forEach((y) => (y[0] += 1e4));
+    return r.sort((a, b) => b[0] - a[0] || (b[1].c?.일자 || "").localeCompare(a[1].c?.일자 || "")).map(([, x]) => x);
+  }
+  return { parse, find, rank, words, expanded, stem, mark, index, hits, prior };
 })();
