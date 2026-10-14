@@ -1,7 +1,7 @@
 """참고자료(사례집·매뉴얼·FAQ 자료집) 신규·개정 점검 → reports/YYYYMMDD_참고자료.md  (토큰 0)
 
 - 법령·고시는 crawl_regs.py(법제처)가 맡고, 여기서는 전문기관이 내는 사례집·매뉴얼·FAQ 자료집을 본다.
-- 소스: 전문기관 공개 자료실(KAIA·KIMST)과, 부처별 사례집을 모아 올리는 태성회계법인 헬프데스크 게시판(목록 제목·날짜만, 본문은 로그인 전용이라 보지 않음).
+- 소스: 전문기관 공개 자료실(KAIA·KIMST), 혁신법 매뉴얼을 첨부로 올리는 대학 산학협력단 게시판(삼육대), 부처별 사례집을 모아 올리는 태성회계법인 헬프데스크 게시판(목록 제목·날짜만, 본문은 로그인 전용이라 보지 않음).
 - robots.txt가 막은 곳은 건너뛰고 리포트에 적는다. 요청 간 2초.
 - 새로 보인 글은 data/refs_state.json에 기록. 공개 첨부(PDF)를 직접 받을 수 있는 소스는 참고자료/_수집/YYYYMMDD/참고자료/ 에 내려받는다.
 - 사이트 반영은 사람이 확인한 뒤: 받은 파일을 참고자료/ 로 옮기고 classify_cases.py에 문서 이름(DOCS)·필요하면 전용 파서를 더하면 다음 갱신 때 사례로 들어간다.
@@ -11,7 +11,7 @@
 import html, json, re, ssl, sys, time
 from datetime import date
 from pathlib import Path
-from urllib.parse import urljoin, urlsplit
+from urllib.parse import unquote, urljoin, urlsplit
 from urllib.robotparser import RobotFileParser
 
 import requests
@@ -161,16 +161,36 @@ def kimst(board):
     return f
 
 
+def syu():
+    """혁신법 매뉴얼(별권 포함)은 과기정통부 공문으로 대학에 배포돼 공식 공개 자료실이 없음 → 첨부를 공개로 올리는 삼육대 산학협력단 게시판(WordPress)을 봄"""
+    base, out = "https://www.syu.ac.kr/rnd/", []
+    for kw in ("매뉴얼", "가이드라인"):
+        posts = s.get(base + "wp-json/wp/v2/posts", params={"search": kw, "per_page": 20, "_fields": "id,date,link,title"}, timeout=30).json()
+        time.sleep(DELAY)
+        for p in posts:
+            title = text(p["title"]["rendered"])
+            if not (DOC.search(title) and FUND.search(title)) or any(x["key"].startswith(f'{p["id"]}-') for x in out):
+                continue
+            page = get(p["link"])
+            for tid, name in re.findall(r'admin-ajax\.php\?action=file_download_id&(?:#038;|amp;)?t_id=(\d+)&(?:#038;|amp;)?o_name=([^"\'&]+)', page):
+                fname = unquote(name)
+                out.append({"key": f'{p["id"]}-{tid}', "title": f"{title} {fname}", "org": "", "date": p["date"][:10], "url": p["link"],
+                            "file": f"{base}wp-admin/admin-ajax.php?action=file_download_id&t_id={tid}&o_name={name}"})
+    return out
+
+
 SOURCES = [
     ("rndhelp-사례", "태성회계법인 헬프데스크 · 부처별 Q&A/불인정 사례(제목만)", rndhelp("46")),
     ("rndhelp-규정", "태성회계법인 헬프데스크 · 규정/지침(제목만)", rndhelp("rule")),
     ("kaia-교육자료", "KAIA 연구비 교육자료", kaia),
     ("kimst-공지", "KIMST 공지사항", kimst("notice_01")),
     ("kimst-안내", "KIMST R&D 안내사항", kimst("edu_01")),
+    ("syu-매뉴얼", "삼육대 산학협력단 · 혁신법 매뉴얼 배포", syu),
 ]
 CHECK = {"rndhelp-사례": "https://www.rndhelp.co.kr/46", "rndhelp-규정": "https://www.rndhelp.co.kr/rule",
          "kaia-교육자료": "https://www.kaia.re.kr/KAIA/contents/K40501000000.do",
-         "kimst-공지": "https://www.kimst.re.kr/u/news/notice_01/board.do", "kimst-안내": "https://www.kimst.re.kr/u/news/edu_01/board.do"}
+         "kimst-공지": "https://www.kimst.re.kr/u/news/notice_01/board.do", "kimst-안내": "https://www.kimst.re.kr/u/news/edu_01/board.do",
+         "syu-매뉴얼": "https://www.syu.ac.kr/rnd/wp-json/wp/v2/posts"}
 
 
 def safe(name):
