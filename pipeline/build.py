@@ -4,6 +4,7 @@
 - Q&A가 없는 규정(POSTECH 내규·운영요령·기술료)은 조문 단위로 '규정조항' 사례를 만든다.
 - 스키마 검증: 모든 규칙·사례에 근거가 있어야 한다.
 """
+from collections import Counter
 import hashlib, json, re, sys
 from datetime import date
 from pathlib import Path
@@ -179,6 +180,11 @@ if __name__ == "__main__":
     cases = json.loads((DATA / "cases.json").read_text(encoding="utf-8"))
     # IRIS 연구수행문의는 상세 화면에서 '공개'를 확인하며 전문기관을 기록한 글만 게시(목록 코드만으로는 비공개글이 섞일 수 있음)
     cases = [c for c in cases if c["유형"] != "규정조항" and (c["출처"] != "IRIS 연구수행문의" or c.get("전문기관"))] + article_cases(texts)
+    seen = Counter()
+    for c in cases:  # 본문·부칙의 같은 조번호, 같은 문구 사례가 같은 id가 되는 경우: 둘째부터 -2, -3
+        seen[c["id"]] += 1
+        if seen[c["id"]] > 1:
+            c["id"] += f"-{seen[c['id']]}"
     for r in rules["rules"]:
         for c in parts(r):
             for g in c["근거"]:
@@ -232,6 +238,5 @@ if __name__ == "__main__":
     meta["쟁점수"] = len(topics)
     OUT.parent.mkdir(exist_ok=True)
     OUT.write_text(json.dumps({"meta": meta, "tracks": rules["tracks"], "ministries": ministries, "rules": rules["rules"], "cases": slim, "topics": topics}, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
-    from collections import Counter
     print(f"OK {OUT.name}: {OUT.stat().st_size // 1024}KB, 규칙 {len(rules['rules'])}, 사례 {len(cases)}", Counter(c["판정"] for c in cases))
     print("문서별:", Counter(c["출처"] for c in cases).most_common())

@@ -21,3 +21,7 @@
 ## [2026-10-13] lint | 고칠 것 0 · 새 사례 대기 쟁점 0
 ## [2026-10-13] ingest | labor-cut-allowance, meeting-alcohol, meeting-meal-attendees, trip-cancel-fee | 점검 대기 60건 처리(인용 48, 검토 12), 비자 취소수수료 엇갈림·사전결재 기간 세부·매뉴얼 219쪽 근거 추가
 ## [2026-10-13] lint | 고칠 것 0 · 새 사례 대기 쟁점 0
+## [2026-10-15] ingest | meeting-meal-attendees | 연구혁신비 예외(사용기준 제25조의2⑥·③2, 매뉴얼 p261 Q4) 근거·50만 원 한도·시범사업 범위 보완
+## [2026-10-15] ingest | allowance-70-cap | 연구수당 1인 70% 한도·중도 퇴직·지급 대상 새 쟁점, labor-cut-allowance와 상호 링크
+## [2026-10-15] lint | 고칠 것 0 · 새 사례 대기 쟁점 3
+## [2026-10-15] lint | 고칠 것 0 · 새 사례 대기 쟁점 3
