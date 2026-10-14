@@ -29,7 +29,13 @@ DOCS = {
     "연구업무규정시행세칙": "POSTECH 연구업무규정 시행세칙(2022.11)",
     "연구업무규정": "POSTECH 연구업무규정(2019.9)",
     "운영지침": "POSTECH 연구개발과제 운영지침(2026.9)",
+    # 학내 시스템 자료: '포스텍 시스템에서 처리' 단계의 근거로만 씀(사례 추출 안 함)
+    "연구관리 매뉴얼(관리자용)": "POSTECH 연구관리 매뉴얼(관리자용, 2025.1)",
+    "POVIS 연구비시스템 교육": "POSTECH POVIS 연구비시스템 교육자료(2025.11)",
+    "PODIUM 권한 이양": "POSTECH PODIUM 권한 이양 매뉴얼(2026.5)",
+    "POVIS 연구비 집행": "POSTECH POVIS 연구비 집행·전자증빙 사용자 매뉴얼(2024.1)",
 }
+SYS_DOCS = ("연구관리 매뉴얼", "POVIS", "PODIUM")
 
 # 비목 분류: 위에서부터 먼저 맞는 것 (세부 → 일반 순)
 BIMOK = [
@@ -204,7 +210,7 @@ def extract():
     out, seen = [], set()
     from extract import load_pages  # PDF 줄바꿈 복원본
     for stem, pages in load_pages().items():
-        if stem.startswith("KAIA"):
+        if stem.startswith("KAIA") or any(k in stem for k in SYS_DOCS):
             continue  # 사례 이야기·FAQ 2단 배치라 kaia_cases()에서 따로 처리
         name = doc_name(stem)
         if stem.startswith("농기평"):

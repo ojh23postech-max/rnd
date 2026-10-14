@@ -207,17 +207,36 @@ function run() {
     if (e.target.dataset.lk) showLaw(ord(lk[+e.target.dataset.lk].근거));
     if (e.target.dataset.go) goRule(e.target.dataset.go);
   };
+  // 포스텍 시스템에서 처리(판정과 별개, when이 맞는 단계만): 화면에는 2단계까지, 나머지는 '더 보기'
+  const ss = (rule.시스템 || []).filter((s) => hit(s.when || [], f));
+  const step = (s, i, full) => `<li><span class="no">${i + 1}</span><div><p><span class="who">${esc(s.누가)}</span> <b>${esc(s.할일)}</b>${[s.경로, s.tcode].filter(Boolean).map((x) => ` <code>${esc(x)}</code>`).join("")}${full ? "" : `<button type="button" data-sg="${i}">근거</button>`}</p>
+      ${s.설명 ? `<p class="d" title="${esc(s.설명)}">${esc(s.설명)}</p>` : ""}${full ? `<small>${s.근거.map(cite).map(esc).join(" / ")}</small>` : ""}</div></li>`;
+  $("#sys").hidden = !ss.length; $("#sys").classList.remove("min");
+  const sysMore = (k) => `<li class="more"><button type="button" id="moreSys">${k ? `단계 ${k}개 더 보기` : `단계 ${ss.length}개 보기`}</button></li>`;
+  $("#sysList").innerHTML = ss.slice(0, 2).map((s, i) => step(s, i)).join("") + (ss.length > 2 ? sysMore(ss.length - 2) : "");
+  $("#sysList").onclick = (e) => {
+    if (e.target.dataset.sg) showLaw(ss[+e.target.dataset.sg].근거);
+    if (e.target.id === "moreSys") openDlg(`<h3>${esc(rule.항목)} · 포스텍 시스템에서 처리</h3><ol class="steps">${ss.map((s, i) => step(s, i, true)).join("")}</ol>`);
+  };
   const row = (x, i) => `<li data-v="${x.v}">${tag(x.v)}<span>${esc(x.t)}</span>
       <span class="src"><button type="button" data-law="${i}">${esc(cite(x.g[0]))}</button>${x.g.length > 1 ? ` 외 ${x.g.length - 1}건` : ""}</span>
       ${x.g[0].발췌 ? `<q class="ex">${esc(x.g[0].발췌)}</q>` : ""}</li>`;
   // 화면에 들어가는 만큼만 보이고 나머지는 '더 보기'로 (페이지 스크롤 없음)
+  renderCases(v); // 사례 요약(머리 높이)이 정해진 뒤에 사유 칸을 잼
   const ol = $("#reasons");
-  let n = items.length;
-  ol.innerHTML = items.map(row).join("");
-  while (n > 1 && ol.scrollHeight > ol.clientHeight) {
-    n--;
-    ol.innerHTML = items.slice(0, n).map(row).join("") + `<li class="more"><button type="button" id="moreReasons">사유 ${items.length - n}건 더 보기</button></li>`;
-  }
+  ol.classList.remove("tight");
+  const fit = () => {
+    let n = items.length;
+    ol.innerHTML = items.map(row).join("");
+    while (n > 1 && ol.scrollHeight > ol.clientHeight) {
+      n--;
+      ol.innerHTML = items.slice(0, n).map(row).join("") + `<li class="more"><button type="button" id="moreReasons">사유 ${items.length - n}건 더 보기</button></li>`;
+    }
+  };
+  fit();
+  // 낮은 화면에서 사유 1건도 다 안 들어가면 시스템 단계는 한 줄로 접고, 그래도 넘치면 발췌문을 숨김
+  if (ss.length && ol.scrollHeight > ol.clientHeight) { $("#sys").classList.add("min"); $("#sysList").innerHTML = sysMore(0); fit(); }
+  if (ol.scrollHeight > ol.clientHeight) ol.classList.add("tight");
   $("#reasons").onclick = (e) => {
     if (e.target.dataset.law) showLaw(items[+e.target.dataset.law].g);
     if (e.target.id === "moreReasons") openDlg(`<h3>${esc(rule.항목)} 판정 사유</h3><ol>${items.map((x) => `<li>${tag(x.v)} ${esc(x.t)}<br><small>${x.g.map(cite).map(esc).join(" / ")}</small></li>`).join("")}</ol>`);
@@ -229,7 +248,6 @@ function run() {
 
   renderAgreeTab(ag);
   renderLawTab([rule.base, ...hits]);
-  renderCases(v);
 }
 
 // 사례 범위: 선택한 부처 과제에 해당하는 사례만 (NRF 사례집은 과기정통부·교육부, 산업부 운영요령은 산업부, 혁신법 매뉴얼 등은 국가R&D 공통)
@@ -370,7 +388,7 @@ function srcLink(doc, page, url) {
   const f = PDFS.find(([k]) => doc.startsWith(k) || doc.includes(k));
   if (f && page) return ext(`src/${f[1]}#page=${page}`, `원문 보기 (PDF ${page}쪽)`);
   if (/산업기술혁신사업|운영요령/.test(doc) && !/POSTECH/.test(doc)) return ext(LAWURL, "원문 보기 (법제처)") + (page ? ` · HWP ${page}구간` : "");
-  return esc(where(doc, page)) + (/^POSTECH/.test(doc) ? " · 전문은 POSTECH 규정집" : "");
+  return esc(where(doc, page)) + (/^POSTECH/.test(doc) ? (/매뉴얼|교육자료/.test(doc) ? " · 학내 자료(원문 비공개)" : " · 전문은 POSTECH 규정집") : "");
 }
 
 // 글 시점: 게시판은 작성일·답변일, 참고자료는 발간 시점
@@ -548,4 +566,6 @@ $("#cards").addEventListener("click", (e) => { const b = e.target.closest("[data
 $("#prev").onclick = () => { page--; drawCards(); };
 $("#next").onclick = () => { page++; drawCards(); };
 document.querySelector(".tabs").addEventListener("click", (e) => e.target.dataset.tab && tab(e.target.dataset.tab));
-addEventListener("resize", () => drawCards());
+// 사유·시스템 단계는 높이를 재서 자르므로 창 크기·글꼴이 바뀌면 다시 맞춤
+addEventListener("resize", () => (rule ? run() : drawCards()));
+document.fonts?.ready.then(() => rule && run());

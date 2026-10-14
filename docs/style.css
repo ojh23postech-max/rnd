@@ -101,7 +101,7 @@ legend { font-size: .8rem; font-weight: 500; color: var(--ink-2); padding: 0; ma
 .quick button { border: 0; background: var(--fill); border-radius: 999px; padding: .5rem 1rem; font-size: .9rem; font-weight: 600; color: var(--ink-2); transition: background .15s, color .15s; }
 .quick button:hover { background: var(--blue-weak); color: var(--blue); }
 
-.verdict { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto auto 1fr; column-gap: 1.1rem; row-gap: 1rem; height: 100%; min-height: 0; }
+.verdict { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto minmax(0, 1fr); column-gap: 1.1rem; row-gap: 1rem; height: 100%; min-height: 0; }
 .seal { --c: var(--ok); --cb: var(--ok-bg); width: 3.8rem; height: 3.8rem; border-radius: 50%; display: grid; place-items: center; background: var(--cb); color: var(--c); align-self: start; margin-top: .2rem; }
 .seal[data-v="판단필요"] { --c: var(--warn); --cb: var(--warn-bg); }
 .seal[data-v="불인정"] { --c: var(--bad); --cb: var(--bad-bg); }
@@ -140,12 +140,32 @@ legend { font-size: .8rem; font-weight: 500; color: var(--ink-2); padding: 0; ma
 .links li::before { content: "→"; position: absolute; left: 0; color: var(--blue); font-weight: 700; }
 .links button { border: 0; background: none; padding: 0; margin-left: .35rem; font-size: .8rem; font-weight: 600; color: var(--blue); }
 .links button:hover { text-decoration: underline; }
-.split { grid-column: 1 / -1; display: grid; grid-template-columns: 1.2fr 1fr; gap: .7rem; align-self: end; }
+.split { grid-column: 1 / -1; display: grid; grid-template-columns: 1.2fr 1fr; gap: .7rem; }
 .box { border: 1px solid var(--line); border-radius: var(--r-md); padding: .8rem 1rem; min-height: 0; }
 .box h3 { margin: 0 0 .4rem; font-size: .9rem; font-weight: 700; }
 .docs { margin: 0; padding: 0; list-style: none; font-size: .84rem; color: var(--ink-2); display: grid; gap: .2rem; }
 .docs li { padding-left: 1.3rem; position: relative; }
 .docs li::before { content: ""; position: absolute; left: .15rem; top: .5em; width: .55rem; height: .3rem; border-left: 2px solid var(--blue); border-bottom: 2px solid var(--blue); transform: rotate(-45deg); }
+/* 포스텍 시스템에서 처리: POVIS·SAP·PODIUM에서 할 단계 (판정과 별개, 차분하게) */
+.sys { grid-column: 1 / -1; border: 1px solid var(--line); border-radius: var(--r-md); padding: .7rem 1rem; }
+.sys h3 { margin: 0 0 .35rem; font-size: .9rem; font-weight: 700; }
+.sys.min { display: flex; align-items: center; gap: .6rem; padding: .4rem 1rem; }
+.sys.min h3 { margin: 0; }
+.reasons.tight .ex { display: none; }
+.steps { margin: 0; padding: 0; list-style: none; display: grid; gap: .4rem; font-size: .86rem; line-height: 1.5; }
+.steps > li { display: grid; grid-template-columns: 1.35rem 1fr; gap: .55rem; }
+.steps p { margin: 0; }
+.steps > li > div { min-width: 0; }
+.steps .no { width: 1.35rem; height: 1.35rem; margin-top: .05rem; border-radius: 50%; background: var(--fill); color: var(--ink-2); font-size: .74rem; font-weight: 700; display: grid; place-items: center; font-variant-numeric: tabular-nums; }
+.steps .who { font-size: .74rem; font-weight: 700; color: var(--ink-2); background: var(--fill); border-radius: 6px; padding: .1rem .45rem; white-space: nowrap; }
+.steps code { font-family: ui-monospace, Consolas, "D2Coding", monospace; font-size: .78rem; color: var(--ink-2); background: var(--fill); border-radius: 4px; padding: .05rem .35rem; }
+.steps .d { color: var(--ink-2); font-size: .82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#dlgBody .steps .d { white-space: normal; }
+.steps small { color: var(--ink-3); }
+.steps button { border: 0; background: none; padding: 0; margin-left: .35rem; font-size: .8rem; font-weight: 600; color: var(--blue); }
+.steps button:hover { text-decoration: underline; }
+.steps .more { display: block; }
+.steps .more button { margin: 0; }
 #agSummary { font-size: .86rem; }
 #agSummary p { margin: .15rem 0; }
 
@@ -235,6 +255,7 @@ dialog .x { position: absolute; top: .9rem; right: 1rem; width: 2.2rem; height: 
   .top { flex-wrap: wrap; }
   .top .notice { margin-left: 0; flex-basis: 100%; }
   .split { grid-template-columns: 1fr; }
+  .steps .d { white-space: normal; }
 }
 
 /* 페이지 이동(집행 점검 · 사례 백과) */

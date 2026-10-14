@@ -9,7 +9,7 @@ from datetime import date
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from classify_cases import NEG, COND, bimok, doc_name  # 같은 분류 기준 재사용
+from classify_cases import NEG, COND, bimok, doc_name, SYS_DOCS  # 같은 분류 기준 재사용
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA, TEXT, OUT = ROOT / "data", ROOT / "data" / "text", ROOT / "docs" / "data.json"
@@ -145,6 +145,11 @@ def ministry_regs():
     return out
 
 
+def parts(r):
+    """근거를 가진 규칙 구성요소: 기본·조건·협약변경·연계·포스텍 시스템 처리 단계"""
+    return [r["base"]] + r["checks"] + r["agree"] + r["연계"] + r.get("시스템", [])
+
+
 def validate(rules, cases):
     errs = []
     for r in rules["rules"]:
@@ -154,6 +159,11 @@ def validate(rules, cases):
             if not c.get("근거"):
                 errs.append(f"{r['id']}: 근거 없는 조건 {c}")
             for f, op, v in c["when"]:
+                assert op in ("==", "!=", ">", ">=", "<", "<="), op
+        for s in r.get("시스템", []):
+            if not (s.get("할일") and s.get("누가") in ("연구자", "연구비집행담당", "연구지원팀") and s.get("근거")):
+                errs.append(f"{r['id']}: 시스템 단계에 할일·누가·근거 필요 {s}")
+            for f, op, v in s.get("when", []):
                 assert op in ("==", "!=", ">", ">=", "<", "<="), op
     for c in cases:
         if c["판정"] not in ("인정", "불인정", "판단필요", "참고"):
@@ -170,7 +180,7 @@ if __name__ == "__main__":
     # IRIS 연구수행문의는 상세 화면에서 '공개'를 확인하며 전문기관을 기록한 글만 게시(목록 코드만으로는 비공개글이 섞일 수 있음)
     cases = [c for c in cases if c["유형"] != "규정조항" and (c["출처"] != "IRIS 연구수행문의" or c.get("전문기관"))] + article_cases(texts)
     for r in rules["rules"]:
-        for c in [r["base"]] + r["checks"] + r["agree"] + r["연계"]:
+        for c in parts(r):
             for g in c["근거"]:
                 pages = find_doc(texts, g["문서"]) if g.get("출처") != "법제처" else find_doc(regs, g["문서"])
                 assert pages, f"문서 없음: {g['문서']}"
@@ -185,29 +195,29 @@ if __name__ == "__main__":
             # 조건마다 (적용 과제구분, 적용 부처) 조합을 모아, 그 조합 중 하나라도 맞을 때만 질문을 보여 줌
             # 예: 최소 인건비계상률 10%는 '산업부 과제' 또는 '기후에너지환경부(KETEP)'에서만 판정에 쓰이므로 과기정통부·NRF 과제에는 묻지 않음
             show = []
-            for c in r["checks"] + r["agree"] + r["연계"]:
-                if any(k == q["id"] for k, _, _ in c["when"]):
+            for c in r["checks"] + r["agree"] + r["연계"] + r.get("시스템", []):
+                if any(k == q["id"] for k, _, _ in c.get("when", [])):
                     t = ALL.copy()
-                    for k, op, v in c["when"]:
+                    for k, op, v in c.get("when", []):
                         if k == "track":
                             t &= {v} if op == "==" else ALL - {v}
-                    only = [v for k, op, v in c["when"] if k == "ministry" and op == "=="]
+                    only = [v for k, op, v in c.get("when", []) if k == "ministry" and op == "=="]
                     show.append([sorted(t), sorted(only) or None])
             assert show, f"쓰이지 않는 질문: {r['id']}.{q['id']}"
             q["tracks"] = sorted({x for t, _ in show for x in t})
             q["show"] = [list(s) for s in {(tuple(t), tuple(m) if m else None) for t, m in show}]
     # 공개 사이트: POSTECH 내규는 조항 번호와 요지만 (전문은 학내 규정집)
-    gist = lambda t: t if len(t) <= 200 else t[:200].rstrip() + "… (전문은 POSTECH 규정집 참고)"
+    gist = lambda t, where="POSTECH 규정집": t if len(t) <= 200 else t[:200].rstrip() + f"… (전문은 {where} 참고)"
     for c in cases:
         if c["출처"].startswith("POSTECH"):
             c["답변"] = gist(c["답변"])
     for r in rules["rules"]:
-        for c in [r["base"]] + r["checks"] + r["agree"] + r["연계"]:
+        for c in parts(r):
             for g in c["근거"]:
                 if g["문서"].startswith("POSTECH"):
-                    g["발췌"] = gist(g["발췌"])
+                    g["발췌"] = gist(g["발췌"], "학내 매뉴얼" if "매뉴얼" in g["문서"] or "교육자료" in g["문서"] else "POSTECH 규정집")
     ministries = ministry_regs()
-    docs = sorted({c["출처"] for c in cases} | set(texts))
+    docs = sorted({c["출처"] for c in cases} | {k for k in texts if not any(x in k for x in SYS_DOCS)})  # 학내 시스템 자료는 규정 수에서 뺌
     meta = {"기준일": date.today().isoformat(), "문서": docs,
             "사례수": len(cases), "게시판수": sum(c["출처구분"] != "참고자료" for c in cases)}
     slim = [{k: c[k] for k in ("id", "출처구분", "출처", "쪽", "유형", "제목", "답변", "비목", "판정", "판정근거")} | {"부처": c.get("부처", ["공통"])} | ({"질의": c["질의"]} if c.get("질의") and c["질의"].strip() != c["제목"].strip() and not c["출처"].startswith("POSTECH") else {}) | ({"원문URL": c["원문URL"]} if c.get("원문URL") else {}) | ({"자동": 1} if c.get("자동") else {}) | dated(c) | srclink(c) for c in cases]
