@@ -1,6 +1,6 @@
 // 익명 만족도 조사: 응답을 Google Apps Script 웹 앱(pipeline/survey_apps_script.gs)으로 보내 시트에 쌓는다.
 // 이름·이메일·접속 정보는 보내지 않는다. 아래 주소는 Apps Script를 '웹 앱'으로 배포한 뒤 받은 /exec 주소.
-const ENDPOINT = "";
+const ENDPOINT = "https://script.google.com/macros/s/AKfycbyd2Yutf-E5aahmsX66HkNclVHknI7mQaFCkvzpfMB_Z8famE8L0BQIeeZmuEo-R0T4Cw/exec";
 const $ = (s) => document.querySelector(s);
 const LABELS = ["매우 불만", "불만", "보통", "만족", "매우 만족"];
 const DONE = "survey-sent";
