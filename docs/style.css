@@ -396,3 +396,37 @@ dialog .x { position: absolute; top: .9rem; right: 1rem; width: 2.2rem; height: 
 .popbar .popx { margin-left: .3rem; }
 .popbody { padding: 1rem 1.3rem 1.3rem; overflow-y: auto; }
 .popbody .dtitle { font-size: 1.2rem; }
+
+/* 만족도 조사: 한 장짜리 설문(넓은 화면 2단, 좁은 화면 1단) */
+.sboard { padding: 1rem; min-height: 0; display: grid; place-items: center; grid-template-columns: minmax(0, 1fr); }
+.survey { width: min(64rem, 100%); max-height: 100%; overflow-y: auto; scrollbar-width: thin; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.6rem; padding: 1.6rem 1.8rem; }
+.scol { display: flex; flex-direction: column; gap: .9rem; min-width: 0; }
+.survey .eyebrow { margin: 0; color: var(--blue); font-weight: 700; font-size: .9rem; }
+.survey .lead { font-size: 1.7rem; font-weight: 800; line-height: 1.3; letter-spacing: -.035em; margin: -.6rem 0 0; }
+.shint { margin: -.4rem 0 .2rem; color: var(--ink-2); font-size: .9rem; }
+.survey legend { font-size: .92rem; font-weight: 700; color: var(--ink); margin-bottom: .45rem; }
+.req { font-size: .72rem; font-weight: 700; color: var(--blue); background: var(--blue-weak); border-radius: 999px; padding: .05rem .45rem; margin-left: .3rem; vertical-align: middle; }
+.scale { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .35rem; }
+.scale label, .chips label { position: relative; cursor: pointer; border: 2px solid transparent; background: var(--fill); border-radius: var(--r-sm); transition: background .15s, border-color .15s; }
+.scale label { display: grid; justify-items: center; gap: .05rem; padding: .5rem .2rem; }
+.scale b { font-size: 1.1rem; font-weight: 800; color: var(--ink-2); }
+.scale span { font-size: .74rem; color: var(--ink-3); white-space: nowrap; }
+.scale input, .chips input { position: absolute; opacity: 0; }
+.scale label:hover, .chips label:hover { background: var(--fill-hover); }
+.scale label:has(input:checked), .chips label:has(input:checked) { border-color: var(--blue); background: var(--blue-weak); color: #1b64da; }
+.scale label:has(input:checked) b, .scale label:has(input:checked) span { color: #1b64da; }
+.scale label:has(input:focus-visible), .chips label:has(input:focus-visible) { outline: 3px solid rgba(49, 130, 246, .45); }
+.chips { display: flex; flex-wrap: wrap; gap: .35rem; }
+.chips label { padding: .4rem .8rem; font-size: .86rem; font-weight: 500; color: var(--ink-2); }
+.sopinion textarea { min-height: 6.5rem; resize: vertical; padding: .7rem .85rem; border: 2px solid transparent; border-radius: var(--r-sm); background: var(--fill); color: var(--ink); font: inherit; font-size: .92rem; }
+.sopinion textarea:focus { outline: none; background: #fff; border-color: var(--blue); }
+.smsg { margin: 0; min-height: 1.4em; font-size: .86rem; color: var(--ink-2); font-weight: 600; }
+.smsg[data-s="ok"] { color: var(--ok); }
+.smsg[data-s="bad"] { color: var(--bad); }
+.sbtn { margin-top: auto; height: 3rem; border: 0; border-radius: var(--r-md); background: var(--blue); color: #fff; font-size: 1rem; font-weight: 700; transition: background .15s; }
+.sbtn:hover:not(:disabled) { background: #1b64da; }
+.sbtn:disabled { opacity: .45; cursor: default; }
+@media (max-width: 1080px) {
+  .survey { grid-template-columns: minmax(0, 1fr); max-height: none; overflow: visible; padding: 1.2rem; }
+  .scale span { white-space: normal; text-align: center; }
+}

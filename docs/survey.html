@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>만족도 조사 | POSTECH 연구비 집행 점검</title>
+<meta name="description" content="연구비 집행 점검 사이트에 대한 익명 만족도 조사입니다.">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="style.css?v=20261016a">
+</head>
+<body>
+<header class="top">
+  <h1 class="brand"><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>연구비 집행 점검</h1>
+  <nav class="gnb" aria-label="페이지">
+    <a href="./">집행 점검</a>
+    <a href="cases.html">사례 백과</a>
+    <a href="survey.html" aria-current="page">만족도 조사</a>
+  </nav>
+  <p class="notice">이름·이메일·접속 정보는 받지 않습니다. 응답 날짜만 기록됩니다.</p>
+</header>
+
+<main class="sboard">
+  <form class="panel survey" id="sv" novalidate>
+    <div class="scol">
+      <p class="eyebrow">익명 만족도 조사</p>
+      <p class="lead">써 보시니 어떠셨나요?</p>
+      <p class="shint">1분이면 끝나요. 응답은 누가 했는지 알 수 없게 모아 사이트를 고치는 데만 씁니다.</p>
+
+      <fieldset class="rate" data-q="overall">
+        <legend>전반적으로 만족하시나요? <b class="req">필수</b></legend>
+      </fieldset>
+      <fieldset class="rate" data-q="clarity">
+        <legend>판정 결과와 근거가 이해하기 쉬웠나요?</legend>
+      </fieldset>
+      <fieldset class="rate" data-q="useful">
+        <legend>실제 업무(집행·정산)에 도움이 됐나요?</legend>
+      </fieldset>
+    </div>
+
+    <div class="scol">
+      <fieldset class="pick">
+        <legend>주로 쓴 기능 <span class="whint">여러 개 골라도 돼요</span></legend>
+        <div class="chips">
+          <label><input type="checkbox" name="used" value="집행 점검">집행 점검</label>
+          <label><input type="checkbox" name="used" value="사례 백과">사례 백과</label>
+          <label><input type="checkbox" name="used" value="검색">검색</label>
+          <label><input type="checkbox" name="used" value="협약변경 안내">협약변경 안내</label>
+          <label><input type="checkbox" name="used" value="시스템 처리 안내">시스템 처리 안내</label>
+          <label><input type="checkbox" name="used" value="쟁점 정리">쟁점 정리</label>
+        </div>
+      </fieldset>
+      <fieldset class="pick">
+        <legend>구분 <span class="whint">선택 · 큰 범주만 받아요</span></legend>
+        <div class="chips">
+          <label><input type="radio" name="role" value="교원">교원</label>
+          <label><input type="radio" name="role" value="연구원·학생">연구원·학생</label>
+          <label><input type="radio" name="role" value="행정직원">행정직원</label>
+          <label><input type="radio" name="role" value="" checked>응답 안 함</label>
+        </div>
+      </fieldset>
+      <label class="field sopinion">좋았던 점이나 고칠 점
+        <textarea id="comment" maxlength="500" placeholder="예: 출장비 사례가 더 있으면 좋겠어요"></textarea>
+        <span class="whint">이름·연락처·과제번호 등 누구인지 알 수 있는 내용은 적지 마세요. <span id="cnt">0</span>/500</span>
+      </label>
+      <p class="smsg" id="msg" role="status" aria-live="polite"></p>
+      <button type="submit" class="sbtn" id="send">보내기</button>
+    </div>
+  </form>
+</main>
+
+<script src="survey.js?v=20261016a"></script>
+</body>
+</html>
